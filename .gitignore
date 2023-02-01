@@ -1,0 +1,11 @@
+# Jupyter Notebooks
+/.ipynb_checkpoints
+*.ipynb
+
+# Secret discord bot token
+discord_token.txt
+# Stored data
+*.pkl
+
+# Visual Studio
+.vscode
