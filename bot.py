@@ -4,8 +4,10 @@ import ssl
 import urllib.request
 from datetime import datetime as dt
 from datetime import timezone
+from typing import Literal
 
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -59,7 +61,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='?',
                    description=description, intents=intents)
-#workingdata = {"user":{}}
 
 
 def savedata():
@@ -82,6 +83,7 @@ async def on_ready():
     global workingdata
     with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
+    await bot.tree.sync()
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
     # my_task.start()
@@ -96,67 +98,65 @@ async def on_ready():
 #         pickle.dump(main_channels, f)
 
 
-@bot.command(description="Add a user to be tracked")
-async def adduser(ctx):
-    workingdata["user"][ctx.author.id] = {
+@bot.tree.command(description="Add a user to be tracked")
+@app_commands.describe(apikey="API Key used in Wingman")
+async def adduser(interaction: discord.Interaction, apikey: str):
+    workingdata["user"][interaction.user.id] = {
         "apikey": None,
         "tracked_boss_ids": set(),
         "lastchecked": dt.strptime(mostrecentpatchstart + " 12:30 -0500", "%Y-%m-%d %H:%M %z")
     }
-    await ctx.send("Send me your API Key used in Wingman. Reply with your api key")
-
-    def check(msg):
-        return msg.author == ctx.author and msg.guild is None
-
-    response = await bot.wait_for("message", check=check)
-    apikey = response.content.strip()
 
     if isapikeyvalid(apikey):
-        workingdata["user"][ctx.author.id]["apikey"] = apikey
-        await ctx.send("Valid API key. Saving. Do ?track [fractals,raids,strikes] next")
+        workingdata["user"][interaction.user.id]["apikey"] = apikey
+        await interaction.response.send_message("Valid API key. Saving. Do /track next")
         savedata()
     else:
-        await ctx.send("Invalid API key try again.")
+        await interaction.response.send_message("Invalid API key try again.")
 
 
-@bot.command(description="Start tracking bosses")
-async def track(ctx):
-    content = ctx.message.content
-    user = ctx.message.author.id
-    content = content[7:]  # Remove command phrase
-    if content == "fractals":
+@bot.tree.command(description="Start tracking bosses")
+@app_commands.describe(choice="The content you want to track")
+async def track(interaction: discord.Interaction, choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
+    user = interaction.user.id
+    if user not in workingdata["user"].keys():
+        await interaction.response.send_message("You are not a registered user. Do /adduser")
+        return
+
+    if choice == "fractals":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             fractal_cm_boss_ids)
         savedata()
-        await ctx.send("Added bosses to track list")
-    elif content == "raids":
+        await interaction.response.send_message("Added bosses to track list")
+    elif choice == "raids":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             raid_boss_ids)
         savedata()
-        await ctx.send("Added bosses to track list")
-    elif content == "raids cm":
+        await interaction.response.send_message("Added bosses to track list")
+    elif choice == "raids cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             raid_cm_boss_ids)
         savedata()
-        await ctx.send("Added bosses to track list")
-    elif content == "strikes":
+        await interaction.response.send_message("Added bosses to track list")
+    elif choice == "strikes":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             strike_boss_ids)
         savedata()
-        await ctx.send("Added bosses to track list")
-    elif content == "strikes cm":
+        await interaction.response.send_message("Added bosses to track list")
+    elif choice == "strikes cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             strike_cm_boss_ids)
         savedata()
-        await ctx.send("Added bosses to track list")
+        await interaction.response.send_message("Added bosses to track list")
     else:
-        await ctx.send("Invalid response please try again with [fractals, raids, raids cm, strikes, strikes cm]")
+        await interaction.response.send_message("Invalid response please try again with [fractals, raids, raids cm, strikes, strikes cm]")
 
 
-@bot.command(description="Check for new PBs")
-async def check(ctx):
-    userid = ctx.message.author.id
-    sentlog = False
+@bot.tree.command(description="Manually check for new PBs")
+# @app_commands.describe()
+async def check(interaction: discord.Interaction):
+    userid = interaction.user.id
+    responses = []
     if workingdata["user"][userid]["apikey"] is not None and workingdata["user"][userid]["tracked_boss_ids"] != set():
         APIKey = workingdata["user"][userid]["apikey"]
         tracked_boss_ids = workingdata["user"][userid]["tracked_boss_ids"]
@@ -182,8 +182,8 @@ async def check(ctx):
                 logtimestamp = dt.strptime(logtimestamp, format_data)
                 # Check if log timestamps are from after last check
                 if logtimestamp > workingdata["user"][userid]["lastchecked"]:
-                    sentlog = True
-                    await ctx.send("New best DPS log on {}!\nSpec: {}\nDPS: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(bossdump[boss_id]["name"], spec, topstats[boss][spec]["topDPS"], topstats[boss][spec]["link"]))
+                    responses.append("New best DPS log on {}!\nSpec: {}\nDPS: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(
+                        bossdump[boss_id]["name"], spec, topstats[boss][spec]["topDPS"], topstats[boss][spec]["link"]))
 
         # Look for new fastest log
         toptimes = playerstatdump["topBossTimes"][mostrecentpatchid]
@@ -201,23 +201,36 @@ async def check(ctx):
             if logtimestamp > workingdata["user"][userid]["lastchecked"]:
                 bosstime = dt.fromtimestamp(
                     toptimes[boss]["durationMS"]/1000.0).strftime('%M:%S.%f')[:-3]
-                sentlog = True
-                await ctx.send("New fastest log on {}!\nTime: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(bossdump[boss_id]["name"], bosstime, toptimes[boss]["link"]))
+                responses.append("New fastest log on {}!\nTime: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(
+                    bossdump[boss_id]["name"], bosstime, toptimes[boss]["link"]))
 
-        if not sentlog:
-            await ctx.send("No new PBs")
+        if responses == []:
+            await interaction.response.send_message("No new PBs")
+        else:
+            await interaction.response.defer()
+            for response in responses:
+                await interaction.followup.send(response)
 
         workingdata["user"][userid]["lastchecked"] = dt.now(
             timezone.utc)  # Update last checked
         savedata()
+    elif workingdata["user"][userid]["apikey"] is None:
+        await interaction.response.send_message("Error. You need to add your api key first. Do /useradd")
+    else:
+        await interaction.response.send_message("Error. You don't have any tracked bosses. Do /track")
 
 
-@bot.command(description="Debug command to reset last checked")
-async def resetlastchecked(ctx):
-    userid = ctx.message.author.id
+@bot.tree.command(description="Debug command to reset last checked")
+# @app_commands.describe()
+async def resetlastchecked(interaction: discord.Interaction):
+    userid = interaction.user.id
+    if userid not in workingdata["user"].keys():
+        await interaction.response.send_message("You are not a registered user. Do /adduser")
+        return
+
     workingdata["user"][userid]["lastchecked"] = dt.strptime(
         mostrecentpatchstart + " 12:30 -0500", "%Y-%m-%d %H:%M %z")
-    await ctx.send("Last checked reset")
+    await interaction.response.send_message("Last checked reset")
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
 # async def my_task():
