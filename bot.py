@@ -220,7 +220,7 @@ async def check(interaction: discord.Interaction):
         await interaction.response.send_message("Error. You don't have any tracked bosses. Do /track")
 
 
-@bot.tree.command(description="Debug command to reset last checked")
+@bot.tree.command(description="Debug command to reset last checked to most recent patch day")
 # @app_commands.describe()
 async def resetlastchecked(interaction: discord.Interaction):
     userid = interaction.user.id
@@ -229,8 +229,25 @@ async def resetlastchecked(interaction: discord.Interaction):
         return
 
     workingdata["user"][userid]["lastchecked"] = dt.strptime(
-        mostrecentpatchstart + " 12:30 -0500", "%Y-%m-%d %H:%M %z")
-    await interaction.response.send_message("Last checked reset")
+        mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
+    await interaction.response.send_message("Last checked reset to most recent patch day")
+
+
+@bot.tree.command(description="Responds with the last time PBs were checked")
+# @app_commands.describe()
+async def lastchecked(interaction: discord.Interaction):
+    userid = interaction.user.id
+    if userid not in workingdata["user"].keys():
+        await interaction.response.send_message("You are not a registered user. Do /adduser")
+        return
+
+    lastchecked = workingdata["user"][userid]["lastchecked"]
+    delta = dt.now(timezone.utc) - lastchecked
+    days, remainder = divmod(delta.total_seconds(), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    await interaction.response.send_message("Last checked " + f"{int(days)} days, {int(hours)} hours, {int(minutes)} minutes" + " ago")
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
 # async def my_task():
