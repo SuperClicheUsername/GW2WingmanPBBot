@@ -51,9 +51,7 @@ with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/classe
 professions = list(classdump.keys())
 
 
-description = '''An example bot to showcase the discord.ext.commands extension
-module.
-There are a number of utility commands being showcased here.'''
+description = '''A bot to pull personal best and leaderboard info from gw2wingman.'''
 
 intents = discord.Intents.default()
 intents.members = True
@@ -65,7 +63,7 @@ bot = commands.Bot(command_prefix='?',
 
 
 def savedata():
-    with open('workingdata.pkl', 'wb') as f:
+    with open('data/workingdata.pkl', 'wb') as f:
         pickle.dump(workingdata, f)
     return None
 
@@ -82,7 +80,7 @@ def isapikeyvalid(key):
 @bot.event
 async def on_ready():
     global workingdata
-    with open('workingdata.pkl', 'rb') as f:
+    with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
@@ -230,7 +228,7 @@ async def resetlastchecked(ctx):
 #             if workingdata["user"]["apikey"] is not None and "tracked_boss_ids" != []:
 #                 await user.send("This should ping every 10 seconds. This is where we check for new logs")
 
-with open('discord_token.txt') as f:
+with open('data/discord_token.txt') as f:
     token = f.readline()
 
 bot.run(token)

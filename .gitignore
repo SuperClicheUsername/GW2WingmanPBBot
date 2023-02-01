@@ -9,3 +9,6 @@ discord_token.txt
 
 # Visual Studio
 .vscode
+
+# Temp files
+*.tmp
