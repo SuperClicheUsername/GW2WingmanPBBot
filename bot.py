@@ -116,7 +116,7 @@ async def adduser(interaction: discord.Interaction, apikey: str):
     workingdata["user"][interaction.user.id] = {
         "apikey": None,
         "tracked_boss_ids": set(),
-        "lastchecked": dt.strptime(mostrecentpatchstart + " 12:30 -0500", "%Y-%m-%d %H:%M %z")
+        "lastchecked": None
     }
 
     if isapikeyvalid(apikey):
@@ -172,6 +172,14 @@ async def check(interaction: discord.Interaction):
     if workingdata["user"][userid]["apikey"] is not None and workingdata["user"][userid]["tracked_boss_ids"] != set():
         APIKey = workingdata["user"][userid]["apikey"]
         tracked_boss_ids = workingdata["user"][userid]["tracked_boss_ids"]
+
+        if workingdata["user"][userid]["lastchecked"] is None or workingdata["user"][userid]["lastchecked"] < mostrecentpatchstart:
+            interaction.response.send_message(
+                "You haven't checked logs yet this patch. Not linking PBs to reduce spam. Next time /check will link all PB logs")
+            workingdata["user"][userid]["lastchecked"] = dt.now(
+                timezone.utc)  # Update last checked
+            savedata()
+            return
 
         with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(APIKey)) as url:
             playerstatdump = json.load(url)
@@ -248,6 +256,9 @@ async def lastchecked(interaction: discord.Interaction):
     userid = interaction.user.id
     if userid not in workingdata["user"].keys():
         await interaction.response.send_message("You are not a registered user. Do /adduser")
+        return
+    if workingdata["user"][userid]["lastchecked"] is None:
+        await interaction.response.send_message("You have never checked logs before.")
         return
 
     lastchecked = workingdata["user"][userid]["lastchecked"]
