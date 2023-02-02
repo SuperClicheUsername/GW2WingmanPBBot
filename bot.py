@@ -168,7 +168,7 @@ async def check(interaction: discord.Interaction):
         APIKey = workingdata["user"][userid]["apikey"]
         tracked_boss_ids = workingdata["user"][userid]["tracked_boss_ids"]
 
-        if workingdata["user"][userid]["lastchecked"] is None or workingdata["user"][userid]["lastchecked"] < mostrecentpatchstart:
+        if workingdata["user"][userid]["lastchecked"] is None or workingdata["user"][userid]["lastchecked"] < mostrecentpatchstartdt:
             await interaction.response.send_message(
                 "You haven't checked logs yet this patch. Not linking PBs to reduce spam. Next time /check will link all PB logs")
             workingdata["user"][userid]["lastchecked"] = dt.now(
