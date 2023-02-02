@@ -138,30 +138,22 @@ async def track(interaction: discord.Interaction, choice: Literal["fractals", "r
     if choice == "fractals":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             fractal_cm_boss_ids)
-        savedata()
-        await interaction.response.send_message("Added bosses to track list")
     elif choice == "raids":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             raid_boss_ids)
-        savedata()
-        await interaction.response.send_message("Added bosses to track list")
     elif choice == "raids cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             raid_cm_boss_ids)
-        savedata()
-        await interaction.response.send_message("Added bosses to track list")
     elif choice == "strikes":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             strike_boss_ids)
-        savedata()
-        await interaction.response.send_message("Added bosses to track list")
     elif choice == "strikes cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             strike_cm_boss_ids)
-        savedata()
-        await interaction.response.send_message("Added bosses to track list")
-    else:
-        await interaction.response.send_message("Invalid response please try again with [fractals, raids, raids cm, strikes, strikes cm]")
+    await interaction.response.send_message("Added bosses to track list")
+    # Dont spam next time they do /check
+    workingdata["user"][user]["lastchecked"] = None
+    savedata()
 
 
 @bot.tree.command(description="Manually check for new PBs")
