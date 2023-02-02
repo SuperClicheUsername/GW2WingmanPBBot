@@ -46,6 +46,8 @@ with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/patche
     patchdump = json.load(url)
 mostrecentpatchid = patchdump["patches"][0]["id"]
 mostrecentpatchstart = patchdump["patches"][0]["from"]
+mostrecentpatchstartdt = dt.strptime(
+    mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
 
 # Grab class specs
 with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/classes") as url:
@@ -112,6 +114,7 @@ async def on_ready():
 
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(apikey="API Key used in Wingman")
+@commands.dm_only()
 async def adduser(interaction: discord.Interaction, apikey: str):
     workingdata["user"][interaction.user.id] = {
         "apikey": None,
@@ -150,7 +153,7 @@ async def track(interaction: discord.Interaction, choice: Literal["fractals", "r
     elif choice == "strikes cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
             strike_cm_boss_ids)
-    await interaction.response.send_message("Added bosses to track list")
+    await interaction.response.send_message("Added bosses to track list. Next /check will not give PBs to reduce spam.")
     # Dont spam next time they do /check
     workingdata["user"][user]["lastchecked"] = None
     savedata()
@@ -237,8 +240,7 @@ async def resetlastchecked(interaction: discord.Interaction):
         await interaction.response.send_message("You are not a registered user. Do /adduser")
         return
 
-    workingdata["user"][userid]["lastchecked"] = dt.strptime(
-        mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
+    workingdata["user"][userid]["lastchecked"] = None
     await interaction.response.send_message("Last checked reset to most recent patch day")
 
 
@@ -260,6 +262,11 @@ async def lastchecked(interaction: discord.Interaction):
     minutes, _ = divmod(remainder, 60)
 
     await interaction.response.send_message("Last checked " + f"{int(days)} days, {int(hours)} hours, {int(minutes)} minutes" + " ago")
+
+
+@bot.tree.command(description="Add a user to be tracked")
+async def about(interaction: discord.Interaction):
+    await interaction.response.send_message("You are not a registered user. Do /adduser")
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
 # async def my_task():
