@@ -264,9 +264,9 @@ async def lastchecked(interaction: discord.Interaction):
     await interaction.response.send_message("Last checked " + f"{int(days)} days, {int(hours)} hours, {int(minutes)} minutes" + " ago")
 
 
-@bot.tree.command(description="Add a user to be tracked")
+@bot.tree.command(description="Link about info")
 async def about(interaction: discord.Interaction):
-    await interaction.response.send_message("You are not a registered user. Do /adduser")
+    await interaction.response.send_message("TODO")
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
 # async def my_task():
