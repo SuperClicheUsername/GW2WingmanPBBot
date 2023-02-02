@@ -38,7 +38,7 @@ Setup instructions modified from [Toothy](https://github.com/Maselkov/Toothy) (T
   (Replace `YOUR_BOT_APPLICATION_ID` with the ***Application ID*** from Step 2)  
   ```
   https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_APPLICATION_ID&permissions=2147633152&scope=bot
-  
+  ```
 ## Licensed Works Used
 
 [Toothy](https://github.com/Maselkov/Toothy) by [Maselkov](https://github.com/Maselkov) under [MIT License](https://spdx.org/licenses/MIT.html)
