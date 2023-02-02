@@ -78,6 +78,18 @@ def isapikeyvalid(key):
         return True
 
 
+def logtimestampfromlink(link):
+    format_data = "%Y%m%d-%H%M%S %z"
+    # 1 dash is Wingman uploader link format
+    if link.count("-") == 1:
+        timestamp = link[:15] + " -0500"
+    # 2 dashes is dps report link format
+    elif link.count("-") == 2:
+        timestamp = link[5:20] + " -0500"
+    timestamp = dt.strptime(timestamp, format_data)
+    return timestamp
+
+
 @bot.event
 async def on_ready():
     global workingdata
@@ -163,7 +175,6 @@ async def check(interaction: discord.Interaction):
 
         with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(APIKey)) as url:
             playerstatdump = json.load(url)
-        format_data = "%Y%m%d-%H%M%S %z"
 
         # Look for new top dps log
         topstats = playerstatdump["topPerformances"][mostrecentpatchid]
@@ -178,8 +189,8 @@ async def check(interaction: discord.Interaction):
             specscleared = list(
                 set(topstats[boss].keys()).intersection(professions))
             for spec in specscleared:
-                logtimestamp = topstats[boss][spec]["link"][:15] + " -0500"
-                logtimestamp = dt.strptime(logtimestamp, format_data)
+                logtimestamp = logtimestampfromlink(
+                    topstats[boss][spec]["link"])
                 # Check if log timestamps are from after last check
                 if logtimestamp > workingdata["user"][userid]["lastchecked"]:
                     responses.append("New best DPS log on {}!\nSpec: {}\nDPS: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(
@@ -195,9 +206,7 @@ async def check(interaction: discord.Interaction):
                 boss_id = boss[1:]
             else:
                 boss_id = boss
-            logtimestamp = toptimes[boss]["link"][:15] + " -0500"
-            logtimestamp = dt.strptime(logtimestamp, format_data)
-            # Check if log timestamps are from after last check
+            logtimestamp = logtimestampfromlink(toptimes[boss]["link"])
             if logtimestamp > workingdata["user"][userid]["lastchecked"]:
                 bosstime = dt.fromtimestamp(
                     toptimes[boss]["durationMS"]/1000.0).strftime('%M:%S.%f')[:-3]

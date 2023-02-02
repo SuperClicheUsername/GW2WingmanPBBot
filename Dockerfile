@@ -1,5 +1,6 @@
 # Remove old container
 # docker stop wingmanbot
+# docker rm -f wingmanbot
 # docker image rm -f wingmanbot
 
 # Build new container
