@@ -266,7 +266,9 @@ async def lastchecked(interaction: discord.Interaction):
 
 @bot.tree.command(description="Link about info")
 async def about(interaction: discord.Interaction):
-    await interaction.response.send_message("TODO")
+    embed = discord.Embed(title="View github",
+                          url="https://github.com/SuperClicheUsername/GW2WingmanPBBot")
+    await interaction.response.send_message(embed=embed)
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
 # async def my_task():
