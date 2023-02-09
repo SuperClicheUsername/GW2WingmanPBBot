@@ -39,6 +39,28 @@ Setup instructions modified from [Toothy](https://github.com/Maselkov/Toothy) (T
   ```
   https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_APPLICATION_ID&permissions=2147633152&scope=bot
   ```
+  
+### Deploy
+1. Clone the github repository
+
+2. Create another folder for the bot data
+
+3. In that newly created folder create a discord_token.txt file with the ***Bot Token*** inside
+
+4. Also in that newly created folder run the following python commands
+```
+import pickle
+workingdata = {"user":{}}
+with open('workingdata.pkl', 'wb') as f:
+        pickle.dump(workingdata, f)
+```
+
+5. Inside the cloned repository run the following Docker commands
+```
+docker build -t wingmanbot -f Dockerfile . 
+docker run -v <YOUR DATA FOLDER PATH>:/app/data --name wingmanbot wingmanbot
+```
+
 ## Licensed Works Used
 
 [Toothy](https://github.com/Maselkov/Toothy) by [Maselkov](https://github.com/Maselkov) under [MIT License](https://spdx.org/licenses/MIT.html)
