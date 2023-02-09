@@ -10,49 +10,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from .startupvars import *
+
 ssl._create_default_https_context = ssl._create_unverified_context
-
-# Get all the boss ids
-with urllib.request.urlopen("http://gw2wingman.nevermindcreations.de/api/bosses") as url:
-    bossdump = json.load(url)
-fractal_cm_boss_ids = []
-strike_boss_ids = []
-strike_cm_boss_ids = []
-raid_boss_ids = []
-raid_cm_boss_ids = []
-for key in bossdump.keys():
-    if bossdump[key]["type"] == "fractal":
-        fractal_cm_boss_ids.append("-" + key)
-    elif bossdump[key]["type"] == "strike":
-        strike_boss_ids.append(key)
-    elif bossdump[key]["type"] == "raid":
-        raid_boss_ids.append(key)
-
-# Remove river of souls and pre-dhuum bosses
-raid_boss_ids.remove("19828")
-raid_boss_ids.remove("19536")
-raid_boss_ids.remove("19651")
-raid_boss_ids.remove("19691")
-
-fractal_cm_boss_ids.remove("-232543")  # Remove full encounter ai
-raid_cm_boss_ids = ["-" + boss_id for boss_id in raid_boss_ids]
-# Remove wing 1 and 2 and xera as they dont have CMs
-raid_cm_boss_ids[6:].remove("-16246")
-strike_boss_ids.remove("21333")  # Remove freezie
-strike_cm_boss_ids = ["-" + boss_id for boss_id in strike_boss_ids][5:]
-
-# Grab most recent patch ID
-with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/patches") as url:
-    patchdump = json.load(url)
-mostrecentpatchid = patchdump["patches"][0]["id"]
-mostrecentpatchstart = patchdump["patches"][0]["from"]
-mostrecentpatchstartdt = dt.strptime(
-    mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
-
-# Grab class specs
-with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/classes") as url:
-    classdump = json.load(url)
-professions = list(classdump.keys())
 
 
 description = '''A bot to pull personal best and leaderboard info from gw2wingman.'''
@@ -101,6 +61,12 @@ async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
     # my_task.start()
+
+
+@bot.event
+async def on_command_error(ctx, exception):
+    if isinstance(exception, commands.PrivateMessageOnly):
+        await ctx.send("DM me this command to use it.")
 
 # # The following command associates the ID of the guild to that of the channel in which this command is run.
 # @bot.command(description="Tell the bot where you want it to put updates")
@@ -168,6 +134,7 @@ async def check(interaction: discord.Interaction):
         APIKey = workingdata["user"][userid]["apikey"]
         tracked_boss_ids = workingdata["user"][userid]["tracked_boss_ids"]
 
+        # Don't link logs if lastchecked is none or before most recent patch
         if workingdata["user"][userid]["lastchecked"] is None or workingdata["user"][userid]["lastchecked"] < mostrecentpatchstartdt:
             await interaction.response.send_message(
                 "You haven't checked logs yet this patch. Not linking PBs to reduce spam. Next time /check will link all PB logs")

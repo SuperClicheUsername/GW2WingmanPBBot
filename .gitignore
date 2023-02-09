@@ -12,3 +12,6 @@ discord_token.txt
 
 # Temp files
 *.tmp
+
+# Cache files
+/__pycache__
