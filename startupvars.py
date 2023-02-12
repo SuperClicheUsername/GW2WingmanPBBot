@@ -2,8 +2,25 @@ import json
 import ssl
 import urllib.request
 from datetime import datetime as dt
+import sqlite3
 
 ssl._create_default_https_context = ssl._create_unverified_context
+
+
+def initializedb(dbfilename):
+    con = sqlite3.connect(dbfilename)
+    cur = con.cursor()
+    cur.execute("""CREATE TABLE bossserverchannels(
+        id integer, 
+        boss_id integer)""")  # Server channels to ping
+    cur.execute("""CREATE TABLE users( 
+        id integer, 
+        apikey text, 
+        boss_id integer, 
+        lastchecked text)""")  # User data
+    con.commit()
+    con.close()
+    return None
 
 
 # Get all the boss ids
@@ -14,6 +31,7 @@ strike_boss_ids = []
 strike_cm_boss_ids = []
 raid_boss_ids = []
 raid_cm_boss_ids = []
+bossidtoname = {}
 for key in bossdump.keys():
     if bossdump[key]["type"] == "fractal":
         fractal_cm_boss_ids.append("-" + key)
@@ -21,6 +39,7 @@ for key in bossdump.keys():
         strike_boss_ids.append(key)
     elif bossdump[key]["type"] == "raid":
         raid_boss_ids.append(key)
+    bossidtoname[key] = bossdump[key]["name"]
 
 # Remove river of souls and pre-dhuum bosses
 raid_boss_ids.remove("19828")
