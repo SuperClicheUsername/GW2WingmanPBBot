@@ -320,28 +320,41 @@ async def channeluntrackboss(interaction: discord.Interaction, choice: Literal["
     con.commit()
 
 
-# def patchrecordtimeping(content):
-#     # Construct message from POSTed content
-#     bossname = bossidtoname[content["boss"]]
-#     time = (content["duration"]/1000.0).strftime('%M:%S.%f')[:-3]
-#     players = content["players"]
-#     loglink = content["link"]
-#     if content["group_affiliation"] is None:
-#         message = """
-#         New patch record on {}
-#         Time: {}
-#         Set by players: {}
-#         """.format(bossname, time, players)
-#     else:
-#         message = """
-#         New patch record on {}
-#         Time: {}
-#         Set by players: {}
-#         From group: {}
-#         """.format(bossname, time, players, content["group_affiliation"])
-#     embed = discord.Embed(title="Log", url="gw2wingman.nevermindcreations.de/log/" + loglink)
+async def personaldps(content):
+    acctname = content["account"]
+    # TODO: check if acctname is in tracked list
+    bossid = content["bossID"]
+    bossname = bossidtoname[bossid]
+    # TODO: check if bossid is in tracked list
 
-#     # Distribute message
+    # Construct message from POSTed content
+
+    charname = content["character"]
+    profession = content["profession"]
+    overallPB = content["alsoOverallPB"]
+    dps = content["DPS"]
+    loglink = content["link"]
+
+    if overallPB:
+        message = """
+        New personal best DPS log on {}
+        Class: {}, also best overall!
+        Character: {}
+        DPS: {}
+        """.format(bossname, profession, charname, dps)
+    else:
+        message = """
+        New personal best DPS log on {}
+        Class: {}
+        Character: {}
+        DPS: {}
+        """.format(bossname, profession, charname, dps)
+    log = discord.Embed(
+        title="Log", url="gw2wingman.nevermindcreations.de/log/" + loglink)
+
+    # Distribute message
+    channel = bot.get_channel(1070109613355192370)
+    await channel.send(message, embed=log)
 
 
 # @tasks.loop(seconds=10)  # task runs every 10 seconds
