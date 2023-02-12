@@ -6,6 +6,8 @@
 discord_token.txt
 # Stored data
 *.pkl
+*.db
+*.json
 
 # Visual Studio
 .vscode
