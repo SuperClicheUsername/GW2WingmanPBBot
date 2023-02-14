@@ -145,7 +145,7 @@ async def check(interaction: discord.Interaction):
         # Don't link logs if lastchecked is none or before most recent patch
         if workingdata["user"][userid]["lastchecked"] is None or workingdata["user"][userid]["lastchecked"] < mostrecentpatchstartdt:
             await interaction.response.send_message(
-                "You haven't checked logs yet this patch. Not linking PBs to reduce spam. Next time /check will link all PB logs")
+                "You haven't checked logs yet this patch. Not linking PBs to reduce spam. Next time /check will link all PB logs", ephemeral=True)
             workingdata["user"][userid]["lastchecked"] = dt.now(
                 timezone.utc)  # Update last checked
             savedata()
@@ -320,11 +320,12 @@ async def channeluntrackboss(interaction: discord.Interaction, choice: Literal["
     con.commit()
 
 
+@bot.event
 async def personaldps(content):
     acctname = content["account"]
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    bossname = bossidtoname[bossid]
+    bossname = bossidtoname[str(bossid)]
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
@@ -332,41 +333,115 @@ async def personaldps(content):
     charname = content["character"]
     profession = content["profession"]
     overallPB = content["alsoOverallPB"]
-    dps = content["DPS"]
+    dps = content["dps"]
     loglink = content["link"]
 
     if overallPB:
-        message = """
-        New personal best DPS log on {}
-        Class: {}, also best overall!
-        Character: {}
-        DPS: {}
-        """.format(bossname, profession, charname, dps)
+        message = "New personal best DPS log on {}\nClass: {}, also best overall!\nCharacter: {}\nDPS: {}".format(
+            bossname, profession, charname, dps)
     else:
-        message = """
-        New personal best DPS log on {}
-        Class: {}
-        Character: {}
-        DPS: {}
-        """.format(bossname, profession, charname, dps)
+        message = "New personal best DPS log on {}\nClass: {}\nCharacter: {}\nDPS: {}".format(
+            bossname, profession, charname, dps)
     log = discord.Embed(
-        title="Log", url="gw2wingman.nevermindcreations.de/log/" + loglink)
+        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
 
     # Distribute message
+    await bot.wait_until_ready()
     channel = bot.get_channel(1070109613355192370)
-    await channel.send(message, embed=log)
+    bot.loop.create_task(channel.send(message, embed=log))
 
 
-# @tasks.loop(seconds=10)  # task runs every 10 seconds
-# async def my_task():
-#     # Make sure the list of users isnt empty
-#     if hasattr(workingdata["user"], '__iter__'):
-#         for userid in workingdata["user"]:
-#             user = await bot.fetch_user(userid)
-#             if workingdata["user"]["apikey"] is not None and "tracked_boss_ids" != []:
-#                 await user.send("This should ping every 10 seconds. This is where we check for new logs")
+@bot.event
+async def personaltime(content):
+    # TODO: check if acctname is in tracked list
+    bossid = content["bossID"]
+    bossname = bossidtoname[str(bossid)]
+    # TODO: check if bossid is in tracked list
+
+    # Construct message from POSTed content
+
+    players = content["players"]
+    group = content["group_affiliation"]
+    time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
+    loglink = content["link"]
+
+    if group:
+        message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
+            bossname, group, players, time)
+    else:
+        message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
+            bossname, players, time)
+    log = discord.Embed(
+        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+
+    # Distribute message
+    await bot.wait_until_ready()
+    channel = bot.get_channel(1070109613355192370)
+    bot.loop.create_task(channel.send(message, embed=log))
+
+
+@bot.event
+async def patchtimerecord(content):
+    # TODO: check if acctname is in tracked list
+    bossid = content["bossID"]
+    bossname = bossidtoname[str(bossid)]
+    # TODO: check if bossid is in tracked list
+
+    # Construct message from POSTed content
+
+    players = ", ".join(content["players_chars"])
+    # group = content["group_affiliation"]
+    time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
+    loglink = content["link"]
+
+    # if group:
+    #    message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
+    #        bossname, group, players, time)
+    # else:
+    message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
+        bossname, players, time)
+    log = discord.Embed(
+        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+
+    # Distribute message
+    await bot.wait_until_ready()
+    # channel = bot.get_channel(1070109613355192370)
+    # Wingman discord bot channel
+    channel = bot.get_channel(1070495636744568914)
+    bot.loop.create_task(channel.send(message, embed=log))
+
+
+@bot.event
+async def patchdpsrecord(content):
+    acctname = content["account"]
+    # TODO: check if acctname is in tracked list
+    bossid = content["bossID"]
+    bossname = bossidtoname[str(bossid)]
+    # TODO: check if bossid is in tracked list
+
+    # Construct message from POSTed content
+
+    charname = content["character"]
+    profession = content["profession"]
+    dps = content["dps"]
+    loglink = content["link"]
+
+    message = "New patch DPS record log on {}\nClass: {}\nCharacter/Account Name: {}/{}\nDPS: {}".format(
+        bossname, profession, charname, acctname, dps)
+
+    log = discord.Embed(
+        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+
+    # Distribute message
+    await bot.wait_until_ready()
+    # channel = bot.get_channel(1070109613355192370)  # Test channel
+    # Wingman discord bot channel
+    channel = bot.get_channel(1070495636744568914)
+    bot.loop.create_task(channel.send(message, embed=log))
 
 with open('data/discord_token.txt') as f:
     token = f.readline()
 
-bot.run(token)
+
+def run_discord_bot():
+    bot.run(token)
