@@ -16,4 +16,4 @@ COPY . .
 
 RUN pip3 install -r requirements.txt
 
-CMD ["python3", "bot.py"]
+CMD ["python3", "hypercorn", "app:app", "-b", "0.0.0.0:5005"]
