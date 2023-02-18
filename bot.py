@@ -10,6 +10,7 @@ from os.path import exists
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+from discord.utils import get
 import sqlite3
 
 from startupvars import *
@@ -366,7 +367,7 @@ async def personaltime(content):
     loglink = content["link"]
 
     if group:
-        message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
+        message = "New fastest log on {}\nSet by: {}\nPlayers: {}\nTime: {}".format(
             bossname, group, players, time)
     else:
         message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
@@ -385,6 +386,9 @@ async def patchtimerecord(content):
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     bossname = content["bossName"]
+    era = "Current Patch"
+    if content["eraID"] == "all":
+        era = "All Time"
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
@@ -392,23 +396,42 @@ async def patchtimerecord(content):
     players = ", ".join(content["players_chars"])
     groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
+    prevtime = dt.fromtimestamp(
+        content["previousDuration"]/1000).strftime('%M:%S.%f')[:-3]
     loglink = content["link"]
 
-    if groups:
-        message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
-            bossname, groups, players, time)
-    else:
-        message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
-            bossname, players, time)
     log = discord.Embed(
-        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+        title="New fastest log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+    if groups:
+        log.add_field(name="Group", value=groups)
+        log.set_thumbnail(content["groupIcons"][0])
+        # message = "Set by: {}\nPlayers: {}\nTime: {}".format(
+        #     bossname, groups, players, time)
+    else:
+        pass
+        # log.set_thumbnail() get boss icon if no group icon
+        # message = "Players: {}\nTime: {}".format(
+        #     bossname, players, time)
+    log.add_field(name="Time", value=time, inline=True)
+    log.add_field(name="Previous Time", value=prevtime, inline=True)
+    log.add_field(name="Era", value=era, inline=True)
+
+    # TODO: Almost certainly breaks if emojis aren't available. add checks
+    emoji_list = []
+    for spec in content["players_professions"]:
+        emoji = get(bot.get_all_emojis(), name=spec)
+        emoji_list.append[str(emoji)]
+    playerscontent = [m + " " + n for m, n in zip(players, emoji_list)]
+    playerscontent = "\n".join(playerscontent)
+
+    log.add_field(name="Players", value=playerscontent)
 
     # Distribute message
     await bot.wait_until_ready()
     # channel = bot.get_channel(1070109613355192370)
     # Wingman discord bot channel
     channel = bot.get_channel(1070495636744568914)
-    bot.loop.create_task(channel.send(message, embed=log))
+    bot.loop.create_task(channel.send(embed=log))
 
 
 @bot.event
