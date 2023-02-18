@@ -25,7 +25,6 @@ async def patchrecord():
         data = await request.get_json()
         # Some debug crap
         print(data)
-        print(type(data))
         with open('data/data.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 

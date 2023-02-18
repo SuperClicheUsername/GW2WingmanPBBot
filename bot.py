@@ -325,7 +325,7 @@ async def personaldps(content):
     acctname = content["account"]
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    bossname = bossidtoname[str(bossid)]
+    bossname = content["bossName"]
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
@@ -355,7 +355,7 @@ async def personaldps(content):
 async def personaltime(content):
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    bossname = bossidtoname[str(bossid)]
+    bossname = content["bossName"]
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
@@ -384,22 +384,22 @@ async def personaltime(content):
 async def patchtimerecord(content):
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    bossname = bossidtoname[str(bossid)]
+    bossname = content["bossName"]
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
 
     players = ", ".join(content["players_chars"])
-    # group = content["group_affiliation"]
+    groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
     loglink = content["link"]
 
-    # if group:
-    #    message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
-    #        bossname, group, players, time)
-    # else:
-    message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
-        bossname, players, time)
+    if groups:
+        message = "New fastest log on {}\n Set by: {}\nPlayers: {}\nTime: {}".format(
+            bossname, groups, players, time)
+    else:
+        message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
+            bossname, players, time)
     log = discord.Embed(
         title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
 
@@ -416,7 +416,7 @@ async def patchdpsrecord(content):
     acctname = content["account"]
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    bossname = bossidtoname[str(bossid)]
+    bossname = content["bossName"]
     # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
