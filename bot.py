@@ -473,7 +473,7 @@ async def patchdpsrecord(content):
 
     # TODO: Almost certainly breaks if emojis aren't available. add checks
     emoji = get(bot.emojis, name=profession)
-    playercontent = charname + "/" + acctname + " " + emoji
+    playercontent = charname + "/" + acctname + " " + str(emoji)
 
     log.add_field(name="Player", value=playercontent)
 
