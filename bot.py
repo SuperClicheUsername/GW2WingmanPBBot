@@ -411,7 +411,7 @@ async def patchtimerecord(content):
             bossid = bossid[1:]
         iconurl = "https://gw2wingman.nevermindcreations.de" + \
             bossdump[bossid]["icon"]
-        log.set_thumbnail(iconurl)
+        log.set_thumbnail(url=iconurl)
 
     log.add_field(name="Time", value=time, inline=True)
     log.add_field(name="Previous Time", value=prevtime, inline=True)
