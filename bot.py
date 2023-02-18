@@ -421,7 +421,7 @@ async def patchtimerecord(content):
     emoji_list = []
     for spec in content["players_professions"]:
         emoji = get(bot.emojis, name=spec)
-        emoji_list.append[str(emoji)]
+        emoji_list.append(str(emoji))
     playerscontent = [m + " " + n for m, n in zip(players, emoji_list)]
     playerscontent = "\n".join(playerscontent)
 
