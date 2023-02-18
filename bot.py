@@ -404,7 +404,8 @@ async def patchtimerecord(content):
         title="New fastest log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
     if groups:
         log.add_field(name="Group", value=groups)
-        log.set_thumbnail(content["groupIcons"][0])
+        iconurl = content["groupIcons"][0]
+        log.set_thumbnail(url=iconurl)
         # message = "Set by: {}\nPlayers: {}\nTime: {}".format(
         #     bossname, groups, players, time)
     else:
@@ -419,7 +420,7 @@ async def patchtimerecord(content):
     # TODO: Almost certainly breaks if emojis aren't available. add checks
     emoji_list = []
     for spec in content["players_professions"]:
-        emoji = get(bot.get_all_emojis(), name=spec)
+        emoji = get(bot.emojis(), name=spec)
         emoji_list.append[str(emoji)]
     playerscontent = [m + " " + n for m, n in zip(players, emoji_list)]
     playerscontent = "\n".join(playerscontent)
