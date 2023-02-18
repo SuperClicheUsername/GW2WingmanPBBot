@@ -30,7 +30,7 @@ async def patchrecord():
 
         if data["type"] == "time":
             await patchtimerecord(data)
-        elif data["type"] == "DPS":
+        elif data["type"] == "dps":
             await patchdpsrecord(data)
 
         return "Success"
@@ -47,7 +47,7 @@ async def personalbest():
         if data["type"] == "time":
             # await personaltime(data)
             pass
-        elif data["type"] == "DPS":
+        elif data["type"] == "dps":
             await personaldps(data)
 
         return "Success"
