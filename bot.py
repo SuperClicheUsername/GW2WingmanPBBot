@@ -403,16 +403,16 @@ async def patchtimerecord(content):
     log = discord.Embed(
         title="New fastest log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
     if groups:
-        log.add_field(name="Group", value=groups)
+        log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
         log.set_thumbnail(url=iconurl)
-        # message = "Set by: {}\nPlayers: {}\nTime: {}".format(
-        #     bossname, groups, players, time)
     else:
-        pass
-        # log.set_thumbnail() get boss icon if no group icon
-        # message = "Players: {}\nTime: {}".format(
-        #     bossname, players, time)
+        if bossid.startswith("-"):
+            bossid = bossid[1:]
+        iconurl = "https://gw2wingman.nevermindcreations.de" + \
+            bossdump[bossid]["icon"]
+        log.set_thumbnail(iconurl)
+
     log.add_field(name="Time", value=time, inline=True)
     log.add_field(name="Previous Time", value=prevtime, inline=True)
     log.add_field(name="Era", value=era, inline=True)
