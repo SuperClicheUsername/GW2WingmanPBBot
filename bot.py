@@ -455,7 +455,7 @@ async def patchdpsrecord(content):
     loglink = content["link"]
 
     log = discord.Embed(
-        title="New patch DPS record log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+        title="New DPS record log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
