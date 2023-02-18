@@ -437,31 +437,52 @@ async def patchtimerecord(content):
 
 @bot.event
 async def patchdpsrecord(content):
-    acctname = content["account"]
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     bossname = content["bossName"]
-    # TODO: check if bossid is in tracked list
-
-    # Construct message from POSTed content
-
+    era = "Current Patch"
+    if content["eraID"] == "all":
+        era = "All Time"
     charname = content["character"]
     profession = content["profession"]
     dps = content["dps"]
+    prevdps = content["previousDps"]
+    acctname = content["account"]
+    # TODO: check if bossid is in tracked list
+
+    # Construct message from POSTed content
+    groups = ", ".join(content["group"])
     loglink = content["link"]
 
-    message = "New patch DPS record log on {}\nClass: {}\nCharacter/Account Name: {}/{}\nDPS: {}".format(
-        bossname, profession, charname, acctname, dps)
-
     log = discord.Embed(
-        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+        title="New patch DPS record log on {}".format(bossname), url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+    if groups:
+        log.add_field(name="Group", value=groups, inline=False)
+        iconurl = content["groupIcons"][0]
+        log.set_thumbnail(url=iconurl)
+    else:
+        if bossid.startswith("-"):
+            bossid = bossid[1:]
+        iconurl = "https://gw2wingman.nevermindcreations.de" + \
+            bossdump[bossid]["icon"]
+        log.set_thumbnail(url=iconurl)
+
+    log.add_field(name="DPS", value=dps, inline=True)
+    log.add_field(name="Previous DPS", value=prevdps, inline=True)
+    log.add_field(name="Era", value=era, inline=True)
+
+    # TODO: Almost certainly breaks if emojis aren't available. add checks
+    emoji = get(bot.emojis, name=profession)
+    playercontent = charname + "/" + acctname + " " + emoji
+
+    log.add_field(name="Player", value=playercontent)
 
     # Distribute message
     await bot.wait_until_ready()
-    # channel = bot.get_channel(1070109613355192370)  # Test channel
+    # channel = bot.get_channel(1070109613355192370)
     # Wingman discord bot channel
     channel = bot.get_channel(1070495636744568914)
-    bot.loop.create_task(channel.send(message, embed=log))
+    bot.loop.create_task(channel.send(embed=log))
 
 with open('data/discord_token.txt') as f:
     token = f.readline()
