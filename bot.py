@@ -393,7 +393,7 @@ async def patchtimerecord(content):
 
     # Construct message from POSTed content
 
-    players = ", ".join(content["players_chars"])
+    players = content["players_chars"]
     groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
     prevtime = dt.fromtimestamp(
