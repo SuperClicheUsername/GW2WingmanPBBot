@@ -249,7 +249,7 @@ async def about(interaction: discord.Interaction):
 @app_commands.describe(choice="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
 @commands.guild_only()
-async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
+async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "all"]):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     if choice == "fractals":
@@ -272,6 +272,10 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
+    elif choice == "all":
+        for boss_id in all_boss_ids:
+            cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
 
 
@@ -279,7 +283,7 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
 @app_commands.describe(choice="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
 @commands.guild_only()
-async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
+async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "all"]):
     channel_id = interaction.channel_id
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
     if choice == "fractals":
@@ -300,6 +304,10 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             con.commit()
     elif choice == "strikes cm":
         for boss_id in strike_cm_boss_ids:
+            cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
+    elif choice == "all":
+        for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     await interaction.response.send_message("Removed bosses from track list.", ephemeral=True)

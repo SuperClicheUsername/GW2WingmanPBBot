@@ -55,6 +55,9 @@ raid_cm_boss_ids[6:].remove("-16246")
 strike_boss_ids.remove("21333")  # Remove freezie
 strike_cm_boss_ids = ["-" + boss_id for boss_id in strike_boss_ids][5:]
 
+all_boss_ids = fractal_cm_boss_ids + strike_boss_ids + \
+    strike_cm_boss_ids + raid_boss_ids + raid_cm_boss_ids
+
 # Grab most recent patch ID
 with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/patches") as url:
     patchdump = json.load(url)
