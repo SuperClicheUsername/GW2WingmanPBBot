@@ -23,10 +23,8 @@ async def patchrecord():
     content_type = request.headers.get('Content-Type')
     if (content_type == 'application/json'):
         data = await request.get_json()
-        # Some debug crap
+
         print(data)
-        with open('data/data.json', 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
 
         if data["type"] == "time":
             await patchtimerecord(data)
@@ -48,7 +46,8 @@ async def personalbest():
             # await personaltime(data)
             pass
         elif data["type"] == "dps":
-            await personaldps(data)
+            # await personaldps(data)
+            pass
 
         return "Success"
     else:
