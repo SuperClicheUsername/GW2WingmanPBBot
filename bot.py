@@ -69,6 +69,13 @@ async def on_ready():
     with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
     await bot.tree.sync()
+    dbfilename = "data/wingmanbot.db"
+    if not exists(dbfilename):
+        initializedb(dbfilename)
+    global con
+    con = sqlite3.connect(dbfilename)
+    global cur
+    cur = con.cursor()
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
     # my_task.start()
@@ -249,20 +256,24 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
     if choice == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "raids":
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "raids cm":
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "strikes":
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "strikes cm":
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
-    con.commit()
 
 
 @bot.tree.command(description="Untrack bosses from automatic ping list when a new patch record is added")
@@ -277,18 +288,23 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
     if choice == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "raids":
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "raids cm":
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "strikes":
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     elif choice == "strikes cm":
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
+            con.commit()
     await interaction.response.send_message("Removed bosses from track list.", ephemeral=True)
     con.commit()
 
