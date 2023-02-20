@@ -384,6 +384,7 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 
 @bot.event
 async def patchtimerecord(content):
+    await bot.wait_until_ready()
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
@@ -445,7 +446,7 @@ async def patchtimerecord(content):
     log.add_field(name="Players", value=playerscontent)
 
     # Distribute message
-    await bot.wait_until_ready()
+
     for row in rows:
         channel = bot.get_channel(row[0])
         bot.loop.create_task(channel.send(embed=log))
@@ -453,6 +454,7 @@ async def patchtimerecord(content):
 
 @bot.event
 async def patchdpsrecord(content):
+    await bot.wait_until_ready()
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
@@ -510,8 +512,6 @@ async def patchdpsrecord(content):
     log.add_field(name="Player", value=playercontent)
 
     # Distribute message
-    await bot.wait_until_ready()
-
     for row in rows:
         channel = bot.get_channel(row[0])
         bot.loop.create_task(channel.send(embed=log))
