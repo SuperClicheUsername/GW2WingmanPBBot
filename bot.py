@@ -251,8 +251,7 @@ async def about(interaction: discord.Interaction):
 @commands.guild_only()
 async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
     channel_id = interaction.channel_id
-    sql = """INSERT INTO bossserverchannels(id, boss_id, type) 
-            VALUES(?,?,?)"""
+    sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     if choice == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
@@ -282,9 +281,7 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
 @commands.guild_only()
 async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
     channel_id = interaction.channel_id
-    sql = """DELETE FROM bossserverchannels
-        WHERE id = (channel_id) AND boss_id = (boss_id) AND type = (pingtype)
-        VALUES(?,?,?)"""
+    sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
     if choice == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
@@ -306,7 +303,6 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     await interaction.response.send_message("Removed bosses from track list.", ephemeral=True)
-    con.commit()
 
 
 # @bot.event
