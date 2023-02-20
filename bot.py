@@ -17,7 +17,7 @@ from startupvars import *
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-
+print("TEST")
 description = '''A bot to pull personal best and leaderboard info from gw2wingman.'''
 
 intents = discord.Intents.default()
@@ -273,6 +273,7 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
+        print("Trying to execute all")
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
@@ -307,6 +308,7 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
+        print("Trying to execute all")
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
@@ -379,7 +381,7 @@ async def patchtimerecord(content, cur):
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
-        "SELECT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"))
+        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"))
     rows = cur.fetchall()
 
     # Dont keep going if no channel wants the ping
@@ -455,7 +457,7 @@ async def patchdpsrecord(content, cur):
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
-        "SELECT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "dps"))
+        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "dps"))
     rows = cur.fetchall()
 
     # Dont keep going if no channel wants the ping
@@ -511,7 +513,7 @@ async def patchdpsrecord(content, cur):
     log.add_field(name="Player", value=playercontent)
 
     # Distribute message
-    
+
     for row in rows:
         channel = bot.get_channel(row[0])
         bot.loop.create_task(channel.send(embed=log))
