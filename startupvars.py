@@ -12,7 +12,7 @@ def initializedb(dbfilename):
     cur = con.cursor()
     cur.execute("""CREATE TABLE bossserverchannels(
         id integer, 
-        boss_id string,
+        boss_id text,
         type text)""")  # Server channels to ping
     cur.execute("""CREATE TABLE users( 
         id integer, 
