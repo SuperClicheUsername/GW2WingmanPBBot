@@ -385,6 +385,10 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 @bot.event
 async def patchtimerecord(content):
     await bot.wait_until_ready()
+    if not cur:
+        dbfilename = "data/wingmanbot.db"
+        con = sqlite3.connect(dbfilename)
+        cur = con.cursor()
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
@@ -455,6 +459,11 @@ async def patchtimerecord(content):
 @bot.event
 async def patchdpsrecord(content):
     await bot.wait_until_ready()
+    if not cur:
+        dbfilename = "data/wingmanbot.db"
+        con = sqlite3.connect(dbfilename)
+        cur = con.cursor()
+        
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
