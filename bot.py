@@ -400,6 +400,7 @@ async def patchtimerecord(content, cur):
     # Construct message from POSTed content
 
     players = content["players_chars"]
+    accts = content["players"]
     groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
     prevtime = dt.fromtimestamp(
@@ -435,7 +436,8 @@ async def patchtimerecord(content, cur):
     for spec in content["players_professions"]:
         emoji = get(bot.emojis, name=spec)
         emoji_list.append(str(emoji))
-    playerscontent = [m + " " + n for m, n in zip(emoji_list, players)]
+    playerscontent = [m + " " + n + "/" + o for m,
+                      n, o in zip(emoji_list, players, accts)]
     playerscontent = "\n".join(playerscontent)
 
     log.add_field(name="Players", value=playerscontent)
