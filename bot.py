@@ -273,7 +273,8 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
-        print("Trying to execute all")
+        print(strike_cm_boss_ids)
+        print(all_boss_ids)
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
@@ -308,7 +309,8 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
-        print("Trying to execute all")
+        print(strike_cm_boss_ids)
+        print(all_boss_ids)
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
