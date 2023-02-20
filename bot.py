@@ -80,16 +80,6 @@ async def on_command_error(interaction: discord.Interaction, error: discord.app_
         await interaction.response.send_message("You must be a server administrator to use this command.", ephemeral=True)
 
 
-# # The following command associates the ID of the guild to that of the channel in which this command is run.
-# @bot.command(description="Tell the bot where you want it to put updates")
-# async def channel(ctx):
-#     guild_id = ctx.guild.id
-#     channel_id = ctx.channel.id
-#     main_channels[guild_id] = {"channel": channel_id}
-#     with open('bot_channels.pkl', 'wb') as f:
-#         pickle.dump(main_channels, f)
-
-
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(apikey="API Key used in Wingman")
 async def adduser(interaction: discord.Interaction, apikey: str):
@@ -254,29 +244,21 @@ async def about(interaction: discord.Interaction):
 @commands.guild_only()
 async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
     channel_id = interaction.channel_id
+    sql = """INSERT INTO bossserverchannels(id, boss_id, type) 
+            VALUES(?,?,?)"""
     if choice == "fractals":
-        sql = """INSERT INTO bossserverchannels(id, boss_id, type)
-                VALUES(?,?,?)"""
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "raids":
-        sql = """INSERT INTO bossserverchannels(id, boss_id)
-                VALUES(?,?)"""
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "raids cm":
-        sql = """INSERT INTO bossserverchannels(id, boss_id)
-                VALUES(?,?)"""
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "strikes":
-        sql = """INSERT INTO bossserverchannels(id, boss_id)
-                VALUES(?,?)"""
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "strikes cm":
-        sql = """INSERT INTO bossserverchannels(id, boss_id)
-                VALUES(?,?)"""
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
@@ -289,34 +271,22 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
 @commands.guild_only()
 async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"]):
     channel_id = interaction.channel_id
+    sql = """DELETE FROM bossserverchannels
+        WHERE id = (channel_id) AND boss_id = (boss_id) AND type = (pingtype)
+        VALUES(?,?,?)"""
     if choice == "fractals":
-        sql = """DELETE FROM bossserverchannels
-                WHERE id = (channel_id) AND boss_id = (boss_id) AND type = (pingtype)
-                VALUES(?,?,?)"""
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "raids":
-        sql = """DELETE FROM bossserverchannels
-                WHERE id = (channel_id) AND boss_id = (boss_id)
-                VALUES(?,?)"""
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "raids cm":
-        sql = """DELETE FROM bossserverchannels
-                WHERE id = (channel_id) AND boss_id = (boss_id)
-                VALUES(?,?)"""
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "strikes":
-        sql = """DELETE FROM bossserverchannels
-                WHERE id = (channel_id) AND boss_id = (boss_id)
-                VALUES(?,?)"""
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     elif choice == "strikes cm":
-        sql = """DELETE FROM bossserverchannels
-                WHERE id = (channel_id) AND boss_id = (boss_id)
-                VALUES(?,?)"""
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
     await interaction.response.send_message("Removed bosses from track list.", ephemeral=True)
