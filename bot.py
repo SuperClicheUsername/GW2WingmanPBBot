@@ -387,7 +387,11 @@ async def patchtimerecord(content, cur):
         print("Nobody wanted this ping")
         return
 
-    bossname = content["bossName"]
+    if bossid.startswith("-"):
+        bossname = content["bossName"] + " CM"
+    else:
+        bossname = content["bossName"]
+
     era = "Current Patch"
     if content["eraID"] == "all":
         era = "All Time"
@@ -458,7 +462,10 @@ async def patchdpsrecord(content, cur):
         print("Nobody wanted this ping")
         return
 
-    bossname = content["bossName"]
+    if bossid.startswith("-"):
+        bossname = content["bossName"] + " CM"
+    else:
+        bossname = content["bossName"]
     era = "Current Patch"
     if content["eraID"] == "all":
         era = "All Time"
