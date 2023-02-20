@@ -17,7 +17,6 @@ from startupvars import *
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-print("TEST")
 description = '''A bot to pull personal best and leaderboard info from gw2wingman.'''
 
 intents = discord.Intents.default()
@@ -273,9 +272,8 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
-        print(strike_cm_boss_ids)
-        print(all_boss_ids)
         for boss_id in all_boss_ids:
+            await interaction.response.defer()
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
@@ -309,8 +307,7 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
-        print(strike_cm_boss_ids)
-        print(all_boss_ids)
+        await interaction.response.defer()
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
