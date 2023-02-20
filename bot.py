@@ -405,6 +405,13 @@ async def patchtimerecord(content):
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
+
+        # If no group icon get boss icon
+        if iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png":
+            if bossid.startswith("-"):
+                bossid = bossid[1:]
+            iconurl = "https://gw2wingman.nevermindcreations.de" + \
+                bossdump[bossid]["icon"]
         log.set_thumbnail(url=iconurl)
     else:
         if bossid.startswith("-"):
@@ -422,7 +429,7 @@ async def patchtimerecord(content):
     for spec in content["players_professions"]:
         emoji = get(bot.emojis, name=spec)
         emoji_list.append(str(emoji))
-    playerscontent = [m + " " + n for m, n in zip(players, emoji_list)]
+    playerscontent = [m + " " + n for m, n in zip(emoji_list, players)]
     playerscontent = "\n".join(playerscontent)
 
     log.add_field(name="Players", value=playerscontent)
@@ -459,6 +466,13 @@ async def patchdpsrecord(content):
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
+
+        # If no group icon get boss icon
+        if iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png":
+            if bossid.startswith("-"):
+                bossid = bossid[1:]
+            iconurl = "https://gw2wingman.nevermindcreations.de" + \
+                bossdump[bossid]["icon"]
         log.set_thumbnail(url=iconurl)
     else:
         if bossid.startswith("-"):
@@ -473,7 +487,7 @@ async def patchdpsrecord(content):
 
     # TODO: Almost certainly breaks if emojis aren't available. add checks
     emoji = get(bot.emojis, name=profession)
-    playercontent = charname + "/" + acctname + " " + str(emoji)
+    playercontent = str(emoji) + " " + charname + "/" + acctname
 
     log.add_field(name="Player", value=playercontent)
 
