@@ -27,6 +27,14 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='?',
                    description=description, intents=intents)
 
+dbfilename = "data/wingmanbot.db"
+if not exists(dbfilename):
+    initializedb(dbfilename)
+global con
+con = sqlite3.connect(dbfilename)
+global cur
+cur = con.cursor()
+
 
 def savedata():
     with open('data/workingdata.pkl', 'wb') as f:
@@ -61,13 +69,6 @@ async def on_ready():
     with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
     await bot.tree.sync()
-    dbfilename = "data/wingmanbot.db"
-    if not exists(dbfilename):
-        initializedb(dbfilename)
-    global con
-    con = sqlite3.connect(dbfilename)
-    global cur
-    cur = con.cursor()
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
     # my_task.start()
