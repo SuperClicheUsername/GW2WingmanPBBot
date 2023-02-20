@@ -472,7 +472,8 @@ async def patchdpsrecord(content, cur):
     charname = content["character"]
     profession = content["profession"]
     dps = content["dps"]
-    prevdps = content["previousDps"]
+    dpsdiff = dps - content["previousDps"]
+    dpsstring = str(dps) + " (+{})".format(dpsdiff)
     acctname = content["account"]
     # TODO: check if bossid is in tracked list
 
@@ -500,8 +501,7 @@ async def patchdpsrecord(content, cur):
             bossdump[bossid]["icon"]
         log.set_thumbnail(url=iconurl)
 
-    log.add_field(name="DPS", value=dps, inline=True)
-    log.add_field(name="Previous DPS", value=prevdps, inline=True)
+    log.add_field(name="DPS", value=dpsstring, inline=True)
     log.add_field(name="Era", value=era, inline=True)
 
     # TODO: Almost certainly breaks if emojis aren't available. add checks
