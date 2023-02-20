@@ -1,7 +1,7 @@
 from quart import Quart, request
 import json
 import asyncio
-from bot import run_discord_bot, patchdpsrecord, patchtimerecord
+from bot import run_discord_bot, patchdpsrecord, patchtimerecord, cur
 # from bot import personaldps, personaltime
 from threading import Thread
 
@@ -28,9 +28,9 @@ async def patchrecord():
         print(data)
 
         if data["type"] == "time":
-            await patchtimerecord(data)
+            await patchtimerecord(data, cur)
         elif data["type"] == "dps":
-            await patchdpsrecord(data)
+            await patchdpsrecord(data, cur)
 
         return "Success"
     else:
@@ -44,10 +44,10 @@ async def personalbest():
         data = await request.get_json()
 
         if data["type"] == "time":
-            # await personaltime(data)
+            # await personaltime(data, cur)
             pass
         elif data["type"] == "dps":
-            # await personaldps(data)
+            # await personaldps(data, cur)
             pass
 
         return "Success"

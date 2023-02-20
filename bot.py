@@ -323,7 +323,7 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 
 
 # @bot.event
-# async def personaldps(content):
+# async def personaldps(content, cur):
 #     acctname = content["account"]
 #     # TODO: check if acctname is in tracked list
 #     bossid = content["bossID"]
@@ -354,7 +354,7 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 
 
 # @bot.event
-# async def personaltime(content):
+# async def personaltime(content, cur):
 #     # TODO: check if acctname is in tracked list
 #     bossid = content["bossID"]
 #     bossname = content["bossName"]
@@ -383,12 +383,8 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 
 
 @bot.event
-async def patchtimerecord(content):
+async def patchtimerecord(content, cur):
     await bot.wait_until_ready()
-    if not cur:
-        dbfilename = "data/wingmanbot.db"
-        con = sqlite3.connect(dbfilename)
-        cur = con.cursor()
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
@@ -457,13 +453,9 @@ async def patchtimerecord(content):
 
 
 @bot.event
-async def patchdpsrecord(content):
+async def patchdpsrecord(content, cur):
     await bot.wait_until_ready()
-    if not cur:
-        dbfilename = "data/wingmanbot.db"
-        con = sqlite3.connect(dbfilename)
-        cur = con.cursor()
-        
+
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     cur.execute(
