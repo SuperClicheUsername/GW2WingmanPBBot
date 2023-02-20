@@ -395,7 +395,6 @@ async def patchtimerecord(content, cur):
     era = "Current Patch"
     if content["eraID"] == "all":
         era = "All Time"
-    # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
 
@@ -477,7 +476,6 @@ async def patchdpsrecord(content, cur):
     dpsdiff = dps - content["previousDps"]
     dpsstring = str(dps) + " (+{})".format(dpsdiff)
     acctname = content["account"]
-    # TODO: check if bossid is in tracked list
 
     # Construct message from POSTed content
     groups = ", ".join(content["group"])
@@ -513,13 +511,10 @@ async def patchdpsrecord(content, cur):
     log.add_field(name="Player", value=playercontent)
 
     # Distribute message
+    
     for row in rows:
         channel = bot.get_channel(row[0])
         bot.loop.create_task(channel.send(embed=log))
-    # channel = bot.get_channel(1070109613355192370)
-    # Wingman discord bot channel
-    # channel = bot.get_channel(1070495636744568914)
-    # bot.loop.create_task(channel.send(embed=log))
 
 with open('data/discord_token.txt') as f:
     token = f.readline()
