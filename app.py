@@ -1,7 +1,8 @@
 from quart import Quart, request
 import json
 import asyncio
-from bot import run_discord_bot, personaldps, bot, patchdpsrecord, patchtimerecord
+from bot import run_discord_bot, patchdpsrecord, patchtimerecord
+# from bot import personaldps, personaltime
 from threading import Thread
 
 app = Quart(__name__)

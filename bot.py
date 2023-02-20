@@ -353,33 +353,33 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
 #     bot.loop.create_task(channel.send(message, embed=log))
 
 
-@bot.event
-async def personaltime(content):
-    # TODO: check if acctname is in tracked list
-    bossid = content["bossID"]
-    bossname = content["bossName"]
-    # TODO: check if bossid is in tracked list
+# @bot.event
+# async def personaltime(content):
+#     # TODO: check if acctname is in tracked list
+#     bossid = content["bossID"]
+#     bossname = content["bossName"]
+#     # TODO: check if bossid is in tracked list
 
-    # Construct message from POSTed content
+#     # Construct message from POSTed content
 
-    players = content["players"]
-    group = content["group_affiliation"]
-    time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
-    loglink = content["link"]
+#     players = content["players"]
+#     group = content["group_affiliation"]
+#     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
+#     loglink = content["link"]
 
-    if group:
-        message = "New fastest log on {}\nSet by: {}\nPlayers: {}\nTime: {}".format(
-            bossname, group, players, time)
-    else:
-        message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
-            bossname, players, time)
-    log = discord.Embed(
-        title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
+#     if group:
+#         message = "New fastest log on {}\nSet by: {}\nPlayers: {}\nTime: {}".format(
+#             bossname, group, players, time)
+#     else:
+#         message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
+#             bossname, players, time)
+#     log = discord.Embed(
+#         title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
 
-    # Distribute message
-    await bot.wait_until_ready()
-    channel = bot.get_channel(1070109613355192370)
-    bot.loop.create_task(channel.send(message, embed=log))
+#     # Distribute message
+#     await bot.wait_until_ready()
+#     channel = bot.get_channel(1070109613355192370)
+#     bot.loop.create_task(channel.send(message, embed=log))
 
 
 @bot.event
