@@ -35,6 +35,8 @@ con = sqlite3.connect(dbfilename)
 global cur
 cur = con.cursor()
 
+lock = threading.Lock()
+
 
 def savedata():
     with open('data/workingdata.pkl', 'wb') as f:
@@ -252,31 +254,32 @@ async def about(interaction: discord.Interaction):
 async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["dps", "time"], choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "all"]):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    if choice == "fractals":
-        for boss_id in fractal_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    elif choice == "raids":
-        for boss_id in raid_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    elif choice == "raids cm":
-        for boss_id in raid_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    elif choice == "strikes":
-        for boss_id in strike_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    elif choice == "strikes cm":
-        for boss_id in strike_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    elif choice == "all":
-        for boss_id in all_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
-            con.commit()
-    await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
+    with lock:
+        if choice == "fractals":
+            for boss_id in fractal_cm_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        elif choice == "raids":
+            for boss_id in raid_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        elif choice == "raids cm":
+            for boss_id in raid_cm_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        elif choice == "strikes":
+            for boss_id in strike_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        elif choice == "strikes cm":
+            for boss_id in strike_cm_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        elif choice == "all":
+            for boss_id in all_boss_ids:
+                cur.execute(sql, (channel_id, boss_id, pingtype))
+                con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
 
 
 @bot.tree.command(description="Untrack bosses from automatic ping list when a new patch record is added")
@@ -518,8 +521,6 @@ async def patchdpsrecord(content, cur):
 
 with open('data/discord_token.txt') as f:
     token = f.readline()
-
-lock = threading.Lock()
 
 
 def run_discord_bot():
