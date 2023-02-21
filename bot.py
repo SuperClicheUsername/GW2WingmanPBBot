@@ -6,6 +6,7 @@ from datetime import datetime as dt
 from datetime import timezone
 from typing import Literal
 from os.path import exists
+import threading
 
 import discord
 from discord import app_commands
@@ -273,7 +274,6 @@ async def channeltrackboss(interaction: discord.Interaction, pingtype: Literal["
             con.commit()
     elif choice == "all":
         for boss_id in all_boss_ids:
-            await interaction.response.defer()
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     await interaction.response.send_message("Added bosses to track list. Will ping channel when next patch record is posted", ephemeral=True)
@@ -307,7 +307,6 @@ async def channeluntrackboss(interaction: discord.Interaction, pingtype: Literal
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
     elif choice == "all":
-        await interaction.response.defer()
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
@@ -520,6 +519,9 @@ async def patchdpsrecord(content, cur):
 with open('data/discord_token.txt') as f:
     token = f.readline()
 
+lock = threading.Lock()
+
 
 def run_discord_bot():
-    bot.run(token)
+    with lock:
+        bot.run(token)
