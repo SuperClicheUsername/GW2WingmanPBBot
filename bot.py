@@ -6,6 +6,7 @@ from datetime import datetime as dt
 from datetime import timezone
 from typing import Literal
 from os.path import exists
+import importlib
 
 import discord
 from discord import app_commands
@@ -13,6 +14,7 @@ from discord.ext import commands, tasks
 from discord.utils import get
 import sqlite3
 
+import startupvars
 from startupvars import *
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -394,8 +396,7 @@ async def patchtimerecord(content, cur):
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
-        global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
-        patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+        importlib.reload(startupvars)
         era = "Current Patch"
     elif content["eraID"] == patchidlist[0]:
         era = "Current Patch"
@@ -478,8 +479,7 @@ async def patchdpsrecord(content, cur):
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
-        global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
-        patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+        importlib.reload(startupvars)
         era = "Current Patch"
     elif content["eraID"] == patchidlist[0]:
         era = "Current Patch"
