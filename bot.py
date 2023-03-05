@@ -64,9 +64,6 @@ def logtimestampfromlink(link):
 
 @bot.event
 async def on_ready():
-    global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
-    patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
-
     global workingdata, con, cur
     with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
@@ -397,6 +394,7 @@ async def patchtimerecord(content, cur):
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
+        global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
         patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
         era = "Current Patch"
     elif content["eraID"] == patchidlist[0]:
@@ -480,6 +478,7 @@ async def patchdpsrecord(content, cur):
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
+        global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
         patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
         era = "Current Patch"
     elif content["eraID"] == patchidlist[0]:

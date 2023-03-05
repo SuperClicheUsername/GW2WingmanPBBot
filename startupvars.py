@@ -75,6 +75,8 @@ def patchIDdump():
     return(patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt)
 
 
+patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+
 # Grab class specs
 with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/classes") as url:
     classdump = json.load(url)
