@@ -75,6 +75,7 @@ def patchIDdump():
     return(patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt)
 
 
+global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
 patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
 
 # Grab class specs
