@@ -58,13 +58,22 @@ strike_cm_boss_ids = ["-" + boss_id for boss_id in strike_boss_ids][5:]
 all_boss_ids = fractal_cm_boss_ids + strike_boss_ids + \
     strike_cm_boss_ids + raid_boss_ids + raid_cm_boss_ids
 
-# Grab most recent patch ID
-with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/patches") as url:
-    patchdump = json.load(url)
-mostrecentpatchid = patchdump["patches"][0]["id"]
-mostrecentpatchstart = patchdump["patches"][0]["from"]
-mostrecentpatchstartdt = dt.strptime(
-    mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
+
+def patchIDdump():
+    # Grab most recent patch ID
+    with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/patches") as url:
+        patchdump = json.load(url)
+    mostrecentpatchid = patchdump["patches"][0]["id"]
+    mostrecentpatchstart = patchdump["patches"][0]["from"]
+    mostrecentpatchstartdt = dt.strptime(
+        mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z")
+    patchidlist = []
+
+    for patch in patchdump["patches"]:
+        patchidlist.append(patch["id"])
+
+    return(patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt)
+
 
 # Grab class specs
 with urllib.request.urlopen("https://gw2wingman.nevermindcreations.de/api/classes") as url:

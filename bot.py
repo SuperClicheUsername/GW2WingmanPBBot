@@ -64,16 +64,19 @@ def logtimestampfromlink(link):
 
 @bot.event
 async def on_ready():
-    global workingdata
+    global patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt
+    patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+
+    global workingdata, con, cur
     with open('data/workingdata.pkl', 'rb') as f:
         workingdata = pickle.load(f)
     await bot.tree.sync()
+
     dbfilename = "data/wingmanbot.db"
     if not exists(dbfilename):
         initializedb(dbfilename)
-    global con
+
     con = sqlite3.connect(dbfilename)
-    global cur
     cur = con.cursor()
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
@@ -391,9 +394,16 @@ async def patchtimerecord(content, cur):
     else:
         bossname = content["bossName"]
 
-    era = "Current Patch"
     if content["eraID"] == "all":
         era = "All Time"
+    elif content["eraID"] not in patchidlist:
+        patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+        era = "Current Patch"
+    elif content["eraID"] == patchidlist[0]:
+        era = "Current Patch"
+    else:
+        print("Record for old patch, ignoring")
+        return
 
     # Construct message from POSTed content
 
@@ -466,9 +476,18 @@ async def patchdpsrecord(content, cur):
         bossname = content["bossName"] + " CM"
     else:
         bossname = content["bossName"]
-    era = "Current Patch"
+
     if content["eraID"] == "all":
         era = "All Time"
+    elif content["eraID"] not in patchidlist:
+        patchidlist, mostrecentpatchid, mostrecentpatchstart, mostrecentpatchstartdt = patchIDdump()
+        era = "Current Patch"
+    elif content["eraID"] == patchidlist[0]:
+        era = "Current Patch"
+    else:
+        print("Record for old patch, ignoring")
+        return
+
     charname = content["character"]
     profession = content["profession"]
     dps = content["dps"]
