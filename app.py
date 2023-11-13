@@ -1,9 +1,12 @@
-from quart import Quart, request
-import json
 import asyncio
-from bot import run_discord_bot, patchdpsrecord, patchtimerecord, cur
+import json
+
 # from bot import personaldps, personaltime
 from threading import Thread
+
+from quart import Quart, request
+
+from bot import cur, patchdpsrecord, patchtimerecord, run_discord_bot
 
 app = Quart(__name__)
 
@@ -14,15 +17,15 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5005, debug=True)
 
 
-@app.route('/')
+@app.route("/")
 async def hello():
-    return 'Hello World'
+    return "Hello World"
 
 
-@app.route('/patchrecord/', methods=['POST'])
+@app.route("/patchrecord/", methods=["POST"])
 async def patchrecord():
-    content_type = request.headers.get('Content-Type')
-    if (content_type == 'application/json'):
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
         data = await request.get_json()
 
         print(data)
@@ -37,10 +40,10 @@ async def patchrecord():
         return "Content-Type not supported!"
 
 
-@app.route('/personalbest/', methods=['POST'])
+@app.route("/personalbest/", methods=["POST"])
 async def personalbest():
-    content_type = request.headers.get('Content-Type')
-    if (content_type == 'application/json'):
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
         data = await request.get_json()
 
         if data["type"] == "time":
@@ -49,6 +52,18 @@ async def personalbest():
         elif data["type"] == "dps":
             # await personaldps(data, cur)
             pass
+
+        return "Success"
+    else:
+        return "Content-Type not supported!"
+
+
+@app.route("/reportlog/", methods=["POST"])
+async def reportlog():
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        data = await request.get_json()
+        await reportlog(data, cur)
 
         return "Success"
     else:

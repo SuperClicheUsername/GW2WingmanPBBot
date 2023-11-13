@@ -4,6 +4,8 @@
 
 # Secret discord bot token
 discord_token.txt
+# Secret aleeva token
+aleeva_token.txt
 # Stored data
 *.pkl
 *.db
