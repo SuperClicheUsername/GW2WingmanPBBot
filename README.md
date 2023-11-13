@@ -7,7 +7,7 @@ A discord bot with features from [Gw2 Wingman](https://gw2wingman.nevermindcreat
 Join the Wingman [Discord Server!](https://discord.gg/zPGwZYUnPH)
 
 ## Contact:
-* Discord: Yukino Y#0865
+* Discord: supercliche
 * Ingame: dude.3905
 
 ## Features:
