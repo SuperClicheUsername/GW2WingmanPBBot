@@ -500,7 +500,7 @@ async def channeluntrackboss(
 
 
 @bot.event
-async def patchtimerecord(content, cur):
+async def pingreportedlog(content, cur):
     await bot.wait_until_ready()
     loglink = content["link"]
     reasontext = content["reason"]

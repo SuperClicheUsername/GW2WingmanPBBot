@@ -6,7 +6,7 @@ from threading import Thread
 
 from quart import Quart, request
 
-from bot import cur, patchdpsrecord, patchtimerecord, run_discord_bot
+from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_discord_bot
 
 app = Quart(__name__)
 
@@ -63,7 +63,7 @@ async def reportlog():
     content_type = request.headers.get("Content-Type")
     if content_type == "application/json":
         data = await request.get_json()
-        await reportlog(data, cur)
+        await pingreportedlog(data, cur)
 
         return "Success"
     else:
