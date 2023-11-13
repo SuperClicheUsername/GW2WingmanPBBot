@@ -646,9 +646,9 @@ async def patchdpsrecord(content, cur):
     dpsstring = str(dps) + " (+{})".format(dpsdiff)
     acctname = content["account"]
 
-    idmap = discordIDfromAcctName([acctname])
-    if idmap:
-        discordID = discordIDfromAcctName([acctname])[acctname][0]
+    # idmap = discordIDfromAcctName([acctname])
+    # if idmap:
+    #    discordID = discordIDfromAcctName([acctname])[acctname][0]
 
     # Construct message from POSTed content
     groups = ", ".join(content["group"])
@@ -693,10 +693,10 @@ async def patchdpsrecord(content, cur):
     for row in rows:
         channel = bot.get_channel(row[0])
         # If the user is in the guild, ping them.
-        if channel.guild.get_member(discordID):
-            log.add_field(
-                name="Mention", value=bot.get_user(discordID).mention, inline=True
-            )
+        # if channel.guild.get_member(discordID):
+        #    log.add_field(
+        #        name="Mention", value=bot.get_user(discordID).mention, inline=True
+        #    )
         bot.loop.create_task(channel.send(embed=log))
 
 
