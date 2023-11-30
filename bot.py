@@ -504,12 +504,21 @@ async def pingreportedlog(content, cur):
     await bot.wait_until_ready()
     loglink = content["link"]
     reasontext = content["reason"]
-    reportedlogchannel = 1070109613355192370
+    bossid = content["bossID"]
+    bossname = content["bossName"]
+    time = content["duration"]
+    reportedlogchannel = 852681966444740620
 
     log = discord.Embed(
-        title="Log reported, reason: {}".format(reasontext),
+        title="Log reported on {}, reason: {}".format(bossname, reasontext),
         url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
     )
+    if bossid.startswith("-"):
+        bossid = bossid[1:]
+    iconurl = "https://gw2wingman.nevermindcreations.de" + content[bossid]["icon"]
+    log.set_thumbnail(url=iconurl)
+    log.add_field(name="Time", value=time, inline=True)
+    log.add_field(name="Link", value=loglink, inline=True)
 
     channel = bot.get_channel(reportedlogchannel)
     bot.loop.create_task(channel.send(embed=log))
