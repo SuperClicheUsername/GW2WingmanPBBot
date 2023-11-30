@@ -522,6 +522,7 @@ async def pingreportedlog(content, cur):
 
     channel = bot.get_channel(reportedlogchannel)
     bot.loop.create_task(channel.send(embed=log))
+    print("Log reported {}, reason: {}".format(loglink, reasontext))
 
 
 @bot.event
