@@ -11,6 +11,7 @@ from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_disco
 app = Quart(__name__)
 
 t = Thread(target=run_discord_bot)
+t.daemon = True
 t.start()
 
 if __name__ == "__main__":
@@ -70,7 +71,7 @@ async def reportlog():
         return "Content-Type not supported!"
 
 @app.route("/internalmessage/", methods=["POST"])
-async def patchrecord():
+async def internalmessaging():
     content_type = request.headers.get("Content-Type")
     if content_type == "application/json":
         data = await request.get_json()
