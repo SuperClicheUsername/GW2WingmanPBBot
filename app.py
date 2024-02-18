@@ -6,7 +6,7 @@ from threading import Thread
 
 from quart import Quart, request
 
-from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_discord_bot
+from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_discord_bot, internalmessage
 
 app = Quart(__name__)
 
@@ -66,5 +66,14 @@ async def reportlog():
         await pingreportedlog(data, cur)
 
         return "Success"
+    else:
+        return "Content-Type not supported!"
+
+@app.route("/internalmessage/", methods=["POST"])
+async def patchrecord():
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        data = await request.get_json()
+        await internalmessage(data, cur)
     else:
         return "Content-Type not supported!"

@@ -524,6 +524,16 @@ async def pingreportedlog(content, cur):
     bot.loop.create_task(channel.send(embed=log))
     print("Log reported {}, reason: {}".format(loglink, reasontext))
 
+@bot.event
+async def internalmessage(content, cur):
+    # Echos any message sent to the /internalmessage/ endpoint to the internal botspam channel
+    await bot.wait_until_ready()
+    message = content["message"]
+    internalmessagechannel = 1208602365972717628
+
+    channel = bot.get_channel(internalmessagechannel)
+    bot.loop.create_task(channel.send(content=message))
+    print("Internal message {}".format(message))
 
 @bot.event
 async def patchtimerecord(content, cur):
