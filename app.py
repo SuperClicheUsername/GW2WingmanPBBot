@@ -68,3 +68,12 @@ async def reportlog():
         return "Success"
     else:
         return "Content-Type not supported!"
+
+@app.route("/internalmessage/", methods=["POST"])
+async def patchrecord():
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        data = await request.get_json()
+        await internalmessage(data, cur)
+    else:
+        return "Content-Type not supported!"
