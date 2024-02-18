@@ -11,6 +11,7 @@ from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_disco
 app = Quart(__name__)
 
 t = Thread(target=run_discord_bot)
+t.daemon = True
 t.start()
 
 if __name__ == "__main__":
