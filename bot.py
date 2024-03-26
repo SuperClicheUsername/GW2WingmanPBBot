@@ -551,11 +551,20 @@ async def patchtimerecord(content, cur):
         print("Nobody wanted this ping")
         return
 
+    #  Negative boss IDs are CMs
     if bossid.startswith("-"):
         bossname = content["bossName"] + " CM"
     else:
         bossname = content["bossName"]
+    
+    # isLegendary flag for Cerus
+    try:
+        if content["isLegendary"]:
+            bossname = "Legendary " + bossname
+    except:
+        pass
 
+    # Determine era. Reload patchlist if new patch detected
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
@@ -607,7 +616,6 @@ async def patchtimerecord(content, cur):
     log.add_field(name="Previous Time", value=prevtime, inline=True)
     log.add_field(name="Era", value=era, inline=True)
 
-    # TODO: Almost certainly breaks if emojis aren't available. add checks
     emoji_list = []
     for spec in content["players_professions"]:
         emoji = get(bot.emojis, name=spec)
@@ -632,6 +640,7 @@ async def patchdpsrecord(content, cur):
 
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
+
     cur.execute(
         "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
         (bossid, "dps"),
@@ -643,11 +652,20 @@ async def patchdpsrecord(content, cur):
         print("Nobody wanted this ping")
         return
 
+    #  Negative boss IDs are CMs
     if bossid.startswith("-"):
         bossname = content["bossName"] + " CM"
     else:
         bossname = content["bossName"]
+    
+    # isLegendary flag for Cerus
+    try:
+        if content["isLegendary"]:
+            bossname = "Legendary " + bossname
+    except:
+        pass
 
+    # Determine era. Reload patchlist if new patch detected
     if content["eraID"] == "all":
         era = "All Time"
     elif content["eraID"] not in patchidlist:
@@ -702,7 +720,6 @@ async def patchdpsrecord(content, cur):
     log.add_field(name="DPS", value=dpsstring, inline=True)
     log.add_field(name="Era", value=era, inline=True)
 
-    # TODO: Almost certainly breaks if emojis aren't available. add checks
     emoji = get(bot.emojis, name=profession)
     playercontent = str(emoji) + " " + charname + "/" + acctname
 
