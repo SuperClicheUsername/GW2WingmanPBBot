@@ -76,5 +76,6 @@ async def internalmessaging():
     if content_type == "application/json":
         data = await request.get_json()
         await internalmessage(data, cur)
+        return "Success"
     else:
         return "Content-Type not supported!"
