@@ -590,16 +590,14 @@ async def patchtimerecord(content, cur):
 
     #  Negative boss IDs are CMs
     if bossid.startswith("-"):
-        bossname = content["bossName"] + " CM"
+        # Check for legendary key first because not all bosses will have it
+        if "isLegendaryCM" in content.keys():
+            if content["isLegendaryCM"]:
+                bossname = content["bossName"] + " LCM"
+        else:
+            bossname = content["bossName"] + " CM"
     else:
         bossname = content["bossName"]
-    
-    # isLegendary flag for Cerus
-    try:
-        if content["isLegendary"]:
-            bossname = "Legendary " + bossname
-    except:
-        pass
 
     # Determine era. Reload patchlist if new patch detected
     if content["eraID"] == "all":
