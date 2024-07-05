@@ -356,10 +356,10 @@ async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["f
         timechannelids = [item[0] for item in rows if item[1] == "time"]
 
         for channel_id in dpschannelids:
-            deletesql = """DELETE FROM bossserverchannels WHERE channel_id = '{channel_id}' AND boss_id = '{bossid} AND type = 'DPS'"""
+            deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
             cur.execute(deletesql, (channel_id, newbossid, "dps"))
         for channel_id in timechannelids:
-            deletesql = """DELETE FROM bossserverchannels WHERE channel_id = '{channel_id}' AND boss_id = '{bossid}' AND type = 'DPS'"""
+            deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
             cur.execute(deletesql, (channel_id, newbossid, "time"))
         con.commit()
 
