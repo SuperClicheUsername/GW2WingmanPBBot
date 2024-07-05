@@ -331,6 +331,44 @@ async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["frac
         await interaction.response.send_message("Only the bot admin can use this command", ephemeral=True)
 
 
+@bot.tree.command(description="Add tracking for when game adds new boss")
+@app_commands.describe(newbossid="Positive new boss id")
+@commands.is_owner()
+async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes"], newbossid: str):
+    # My discord ID so only I can use this command
+    # This if statement is unecessary if is_owner works.
+    adminuserid = 204614061206405120
+    if interaction.user.id == adminuserid:
+        # Example boss of each type we search to find channels with each type
+        if bosstype == "raids":
+            bossid = "19450"
+        elif bosstype == "strikes":
+            bossid = "22343"
+        elif bosstype == "fractals":
+            bossid = "-17759"
+            
+        selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+        
+
+        cur.execute(selectsql)
+        rows = cur.fetchall()
+        dpschannelids = [item[0] for item in rows if item[1] == "dps"]
+        timechannelids = [item[0] for item in rows if item[1] == "time"]
+
+        for channel_id in dpschannelids:
+            deletesql = """DELETE FROM bossserverchannels WHERE channel_id = '{channel_id}' AND boss_id = '{bossid} AND type = 'DPS'"""
+            cur.execute(deletesql, (channel_id, newbossid, "dps"))
+        for channel_id in timechannelids:
+            deletesql = """DELETE FROM bossserverchannels WHERE channel_id = '{channel_id}' AND boss_id = '{bossid}' AND type = 'DPS'"""
+            cur.execute(deletesql, (channel_id, newbossid, "time"))
+        con.commit()
+
+        numservers = len(rows)
+        await interaction.response.send_message(f"Success! Removed boss {numservers} times")
+    else:
+        await interaction.response.send_message("Only the bot admin can use this command", ephemeral=True)
+
+
 
 # @bot.tree.command(
 #     description="Debug command to reset last checked to most recent patch day"
