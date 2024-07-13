@@ -159,7 +159,7 @@ async def adduser(interaction: discord.Interaction, apikey: str):
 @app_commands.describe(choice="The content you want to track")
 async def track(
     interaction: discord.Interaction,
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm"],
+    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem"],
 ):
     user = interaction.user.id
     if user not in workingdata["user"].keys():
@@ -188,6 +188,10 @@ async def track(
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(strike_cm_boss_ids)
+    elif choice == "golem":
+        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
+            "tracked_boss_ids"
+        ].union(golem_ids)
     await interaction.response.send_message(
         "Added bosses to track list. Next /check will not give PBs to reduce spam.",
         ephemeral=True,
@@ -298,7 +302,7 @@ async def check(interaction: discord.Interaction):
 @bot.tree.command(description="Add tracking for when game adds new boss")
 @app_commands.describe(newbossid="Positive new boss id")
 @commands.is_owner()
-async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes"], newbossid: str):
+async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes", "golem"], newbossid: str):
     # My discord ID so only I can use this command
     # This if statement is unecessary if is_owner works.
     adminuserid = 204614061206405120
@@ -310,6 +314,8 @@ async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["frac
             bossid = "22343"
         elif bosstype == "fractals":
             bossid = "-17759"
+        elif bosstype == "golem":
+            bossid = "16199"
             
         selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
         insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
@@ -334,7 +340,7 @@ async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["frac
 @bot.tree.command(description="Add tracking for when game adds new boss")
 @app_commands.describe(newbossid="Positive new boss id")
 @commands.is_owner()
-async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes"], newbossid: str):
+async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes", "golem"], newbossid: str):
     # My discord ID so only I can use this command
     # This if statement is unecessary if is_owner works.
     adminuserid = 204614061206405120
@@ -346,6 +352,8 @@ async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["f
             bossid = "22343"
         elif bosstype == "fractals":
             bossid = "-17759"
+        elif bosstype == "golem":
+            bossid = "16199"
             
         selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
         
@@ -438,7 +446,7 @@ async def about(interaction: discord.Interaction):
 async def channeltrackboss(
     interaction: discord.Interaction,
     pingtype: Literal["dps", "time"],
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "all"],
+    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
@@ -466,10 +474,19 @@ async def channeltrackboss(
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
+    elif choice == "golem":
+        if pingtype == "time":
+            await interaction.response.send_message("Only DPS pingtype is supported for golems. Try again.")
+            return
+
+        for boss_id in golem_ids:
+            cur.execute(sql, (channel_id, boss_id, "dps"))
+            con.commit()
+
     await interaction.response.send_message(
         "Added bosses to track list. Will ping channel when next patch record is posted",
-        ephemeral=True,
     )
+    return
 
 
 @bot.tree.command(
@@ -481,7 +498,7 @@ async def channeltrackboss(
 async def channeluntrackboss(
     interaction: discord.Interaction,
     pingtype: Literal["dps", "time"],
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "all"],
+    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
     channel_id = interaction.channel_id
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
@@ -509,9 +526,12 @@ async def channeluntrackboss(
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, pingtype))
             con.commit()
-    await interaction.response.send_message(
-        "Removed bosses from track list.", ephemeral=True
-    )
+    elif choice == "golem":
+        for boss_id in golem_ids:
+            cur.execute(sql, (channel_id, boss_id, "dps"))
+            con.commit()
+    await interaction.response.send_message("Removed bosses from track list.")
+    return
 
 
 # @bot.event

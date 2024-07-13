@@ -38,6 +38,7 @@ strike_boss_ids = []
 strike_cm_boss_ids = []
 raid_boss_ids = []
 raid_cm_boss_ids = []
+golem_ids = []
 bossidtoname = {}
 for key in bossdump.keys():
     if bossdump[key]["type"] == "fractal":
@@ -46,13 +47,10 @@ for key in bossdump.keys():
         strike_boss_ids.append(key)
     elif bossdump[key]["type"] == "raid":
         raid_boss_ids.append(key)
+    elif bossdump[key]["type"] == "golem":
+        golem_ids.append(key)
     bossidtoname[key] = bossdump[key]["name"]
 
-# Remove river of souls and pre-dhuum bosses
-# raid_boss_ids.remove("19828")
-# raid_boss_ids.remove("19536")
-# raid_boss_ids.remove("19651")
-# raid_boss_ids.remove("19691")
 
 fractal_cm_boss_ids.remove("-232543")  # Remove full encounter ai
 raid_cm_boss_ids = ["-" + boss_id for boss_id in raid_boss_ids]
