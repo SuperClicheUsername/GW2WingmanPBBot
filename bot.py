@@ -36,13 +36,6 @@ con = sqlite3.connect(dbfilename)
 global cur
 cur = con.cursor()
 
-
-def getAleevaToken():
-    with open("data/aleeva_token.txt") as f:
-        token = f.readline()
-    return token
-
-
 def savedata():
     with open("data/workingdata.pkl", "wb") as f:
         pickle.dump(workingdata, f)
@@ -73,39 +66,6 @@ def logtimestampfromlink(link):
     timestamp = dt.strptime(timestamp, format_data)
     return timestamp
 
-
-# Use the Aleeva API endpoint to request discord ID
-def discordIDfromAcctName(names):
-    endpoint = (
-        "https://api.aleeva.io/server/826421836992348171/member_search?account_names="
-    )
-    headers = {"Authorization": "Bearer " + aleeva_token}
-    missingnames = []
-
-    # TODO: Caching account names
-    # for name in names:
-    #     if name in cachedAcctNames:
-    #         id = cachedAcctNames[name]
-    #     else:
-    #         missingnames.append(name)
-    missingnames = names.copy()  # Remove later
-
-    data = ",".join(missingnames)
-    response = requests.get(endpoint + data, headers=headers)
-
-    # If the response doesnt work
-    if response.status_code != 200:
-        print(response.json())
-        return False
-
-    # Update cached account names
-    # cachedAcctNames = cachedAcctNames | response.json()
-
-    id = response.json()
-
-    return id
-
-
 @bot.event
 async def on_ready():
     global workingdata, con, cur, aleeva_token
@@ -117,12 +77,10 @@ async def on_ready():
     if not exists(dbfilename):
         initializedb(dbfilename)
 
-    # aleeva_token = getAleevaToken() TODO: Aleeva token lookup
     con = sqlite3.connect(dbfilename)
     cur = con.cursor()
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
-    # my_task.start()
 
 
 @bot.tree.error
@@ -136,30 +94,30 @@ async def on_command_error(
 
 
 @bot.tree.command(description="Add a user to be tracked")
-@app_commands.describe(apikey="API Key used in Wingman")
-async def adduser(interaction: discord.Interaction, apikey: str):
-    if isapikeyvalid(apikey):
+@app_commands.describe(api_key="API Key used in Wingman")
+async def adduser(interaction: discord.Interaction, api_key: str):
+    if isapikeyvalid(api_key):
         workingdata["user"][interaction.user.id] = {
             "apikey": None,
             "tracked_boss_ids": set(),
             "lastchecked": None,
         }
-        workingdata["user"][interaction.user.id]["apikey"] = apikey
+        workingdata["user"][interaction.user.id]["apikey"] = api_key
         await interaction.response.send_message(
             "Valid API key. Saving. Do /track next", ephemeral=True
         )
         savedata()
     else:
         await interaction.response.send_message(
-            "Invalid API key try again.", ephemeral=True
+            "Invalid API key. Make sure it is the same API key Wingman uses.", ephemeral=True
         )
 
 
 @bot.tree.command(description="Start tracking bosses")
-@app_commands.describe(choice="The content you want to track")
+@app_commands.describe(content_type="The content you want to track")
 async def track(
     interaction: discord.Interaction,
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem"],
+    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem"],
 ):
     user = interaction.user.id
     if user not in workingdata["user"].keys():
@@ -168,27 +126,27 @@ async def track(
         )
         return
 
-    if choice == "fractals":
+    if content_type == "fractals":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(fractal_cm_boss_ids)
-    elif choice == "raids":
+    elif content_type == "raids":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(raid_boss_ids)
-    elif choice == "raids cm":
+    elif content_type == "raids cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(raid_cm_boss_ids)
-    elif choice == "strikes":
+    elif content_type == "strikes":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(strike_boss_ids)
-    elif choice == "strikes cm":
+    elif content_type == "strikes cm":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(strike_cm_boss_ids)
-    elif choice == "golem":
+    elif content_type == "golem":
         workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
             "tracked_boss_ids"
         ].union(golem_ids)
@@ -202,7 +160,6 @@ async def track(
 
 
 @bot.tree.command(description="Manually check for new PBs")
-# @app_commands.describe()
 async def check(interaction: discord.Interaction):
     userid = interaction.user.id
     responses = []
@@ -300,132 +257,73 @@ async def check(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Add tracking for when game adds new boss")
-@app_commands.describe(newbossid="Positive new boss id")
+@app_commands.describe(new_boss_id="Positive new boss id")
 @commands.is_owner()
-async def addnewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes", "golem"], newbossid: str):
-    # My discord ID so only I can use this command
-    # This if statement is unecessary if is_owner works.
-    adminuserid = 204614061206405120
-    if interaction.user.id == adminuserid:
-        # Example boss of each type we search to find channels with each type
-        if bosstype == "raids":
-            bossid = "19450"
-        elif bosstype == "strikes":
-            bossid = "22343"
-        elif bosstype == "fractals":
-            bossid = "-17759"
-        elif bosstype == "golem":
-            bossid = "16199"
-            
-        selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
-        insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
+async def addnewbossid(interaction: discord.Interaction, boss_type: Literal["fractals", "raids", "strikes", "golem"], new_boss_id: str):
+    # Example boss of each type we search to find channels with each type
+    if boss_type == "raids":
+        bossid = "19450"
+    elif boss_type == "strikes":
+        bossid = "22343"
+    elif boss_type == "fractals":
+        bossid = "-17759"
+    elif boss_type == "golem":
+        bossid = "16199"
+        
+    selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+    insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
 
-        cur.execute(selectsql)
-        rows = cur.fetchall()
-        dpschannelids = [item[0] for item in rows if item[1] == "dps"]
-        timechannelids = [item[0] for item in rows if item[1] == "time"]
+    cur.execute(selectsql)
+    rows = cur.fetchall()
+    dpschannelids = [item[0] for item in rows if item[1] == "dps"]
+    timechannelids = [item[0] for item in rows if item[1] == "time"]
 
-        for channel_id in dpschannelids:
-            cur.execute(insertsql, (channel_id, newbossid, "dps"))
-        for channel_id in timechannelids:
-            cur.execute(insertsql, (channel_id, newbossid, "time"))
-        con.commit()
+    for channel_id in dpschannelids:
+        cur.execute(insertsql, (channel_id, new_boss_id, "dps"))
+    for channel_id in timechannelids:
+        cur.execute(insertsql, (channel_id, new_boss_id, "time"))
+    con.commit()
 
-        numservers = len(rows)
-        await interaction.response.send_message(f"Success! Added boss {numservers} times")
-    else:
-        await interaction.response.send_message("Only the bot admin can use this command", ephemeral=True)
+    numservers = len(rows)
+    print("Added new boss id: " + str(new_boss_id) + " to bosstype: " + str(boss_type))
+    await interaction.response.send_message(f"Success! Added boss {numservers} times")
 
 
 @bot.tree.command(description="Add tracking for when game adds new boss")
-@app_commands.describe(newbossid="Positive new boss id")
+@app_commands.describe(new_boss_id="Positive new boss id")
 @commands.is_owner()
-async def removenewbossid(interaction: discord.Interaction, bosstype: Literal["fractals", "raids", "strikes", "golem"], newbossid: str):
-    # My discord ID so only I can use this command
-    # This if statement is unecessary if is_owner works.
-    adminuserid = 204614061206405120
-    if interaction.user.id == adminuserid:
-        # Example boss of each type we search to find channels with each type
-        if bosstype == "raids":
-            bossid = "19450"
-        elif bosstype == "strikes":
-            bossid = "22343"
-        elif bosstype == "fractals":
-            bossid = "-17759"
-        elif bosstype == "golem":
-            bossid = "16199"
-            
-        selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+async def removenewbossid(interaction: discord.Interaction, boss_type: Literal["fractals", "raids", "strikes", "golem"], new_boss_id: str):
+    # Example boss of each type we search to find channels with each type
+    if boss_type == "raids":
+        bossid = "19450"
+    elif boss_type == "strikes":
+        bossid = "22343"
+    elif boss_type == "fractals":
+        bossid = "-17759"
+    elif boss_type == "golem":
+        bossid = "16199"
         
+    selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+    
 
-        cur.execute(selectsql)
-        rows = cur.fetchall()
-        dpschannelids = [item[0] for item in rows if item[1] == "dps"]
-        timechannelids = [item[0] for item in rows if item[1] == "time"]
+    cur.execute(selectsql)
+    rows = cur.fetchall()
+    dpschannelids = [item[0] for item in rows if item[1] == "dps"]
+    timechannelids = [item[0] for item in rows if item[1] == "time"]
 
-        for channel_id in dpschannelids:
-            deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-            cur.execute(deletesql, (channel_id, newbossid, "dps"))
-        for channel_id in timechannelids:
-            deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-            cur.execute(deletesql, (channel_id, newbossid, "time"))
-        con.commit()
+    for channel_id in dpschannelids:
+        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
+        cur.execute(deletesql, (channel_id, new_boss_id, "dps"))
+    for channel_id in timechannelids:
+        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
+        cur.execute(deletesql, (channel_id, new_boss_id, "time"))
+    con.commit()
 
-        numservers = len(rows)
-        await interaction.response.send_message(f"Success! Removed boss {numservers} times")
-    else:
-        await interaction.response.send_message("Only the bot admin can use this command", ephemeral=True)
+    numservers = len(rows)
+    print("Added new boss id: " + str(new_boss_id) + " to bosstype: " + str(boss_type))
+    await interaction.response.send_message(f"Success! Removed boss {numservers} times")
 
-
-
-# @bot.tree.command(
-#     description="Debug command to reset last checked to most recent patch day"
-# )
-# # @app_commands.describe()
-# async def resetlastchecked(interaction: discord.Interaction):
-#     userid = interaction.user.id
-#     if userid not in workingdata["user"].keys():
-#         await interaction.response.send_message(
-#             "You are not a registered user. Do /adduser", ephemeral=True
-#         )
-#         return
-
-#     workingdata["user"][userid]["lastchecked"] = None
-#     await interaction.response.send_message(
-#         "Last checked reset to most recent patch day", ephemeral=True
-#     )
-
-
-# @bot.tree.command(description="Responds with the last time PBs were checked")
-# # @app_commands.describe()
-# async def lastchecked(interaction: discord.Interaction):
-#     userid = interaction.user.id
-#     if userid not in workingdata["user"].keys():
-#         await interaction.response.send_message(
-#             "You are not a registered user. Do /adduser", ephemeral=True
-#         )
-#         return
-#     if workingdata["user"][userid]["lastchecked"] is None:
-#         await interaction.response.send_message(
-#             "You have never checked logs before.", ephemeral=True
-#         )
-#         return
-
-#     lastchecked = workingdata["user"][userid]["lastchecked"]
-#     delta = dt.now(timezone.utc) - lastchecked
-#     days, remainder = divmod(delta.total_seconds(), 86400)
-#     hours, remainder = divmod(remainder, 3600)
-#     minutes, _ = divmod(remainder, 60)
-
-#     await interaction.response.send_message(
-#         "Last checked "
-#         + f"{int(days)} days, {int(hours)} hours, {int(minutes)} minutes"
-#         + " ago",
-#         ephemeral=True,
-#     )
-
-
-@bot.tree.command(description="Link about info")
+@bot.tree.command(description="Links the about info")
 async def about(interaction: discord.Interaction):
     embed = discord.Embed(
         title="View github",
@@ -438,45 +336,45 @@ async def about(interaction: discord.Interaction):
 
 
 @bot.tree.command(
-    description="Track bosses to be automatically pinged in channel where command is called on new patch record"
+    description="In the channel where the command is called, post a message when there is a new patch record"
 )
-@app_commands.describe(choice="The content you want to track")
+@app_commands.describe(content_type="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
 @commands.guild_only()
 async def channeltrackboss(
     interaction: discord.Interaction,
-    pingtype: Literal["dps", "time"],
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
+    ping_type: Literal["dps", "time", "supportdps"],
+    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    if choice == "fractals":
+    if content_type == "fractals":
         for boss_id in fractal_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "raids":
+    elif content_type == "raids":
         for boss_id in raid_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "raids cm":
+    elif content_type == "raids cm":
         for boss_id in raid_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "strikes":
+    elif content_type == "strikes":
         for boss_id in strike_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "strikes cm":
+    elif content_type == "strikes cm":
         for boss_id in strike_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "all":
+    elif content_type == "all":
         for boss_id in all_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "golem":
-        if pingtype == "time":
-            await interaction.response.send_message("Only DPS pingtype is supported for golems. Try again.")
+    elif content_type == "golem":
+        if ping_type != "dps":
+            await interaction.response.send_message("Only DPS ping_type is supported for golems. Try again.")
             return
 
         for boss_id in golem_ids:
@@ -492,107 +390,46 @@ async def channeltrackboss(
 @bot.tree.command(
     description="Untrack bosses from automatic ping list when a new patch record is added"
 )
-@app_commands.describe(choice="The content you want to track")
+@app_commands.describe(content_type="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
 @commands.guild_only()
 async def channeluntrackboss(
     interaction: discord.Interaction,
-    pingtype: Literal["dps", "time"],
-    choice: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
+    ping_type: Literal["dps", "time", "supportdps"],
+    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
     channel_id = interaction.channel_id
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
-    if choice == "fractals":
+    if content_type == "fractals":
         for boss_id in fractal_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "raids":
+    elif content_type == "raids":
         for boss_id in raid_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "raids cm":
+    elif content_type == "raids cm":
         for boss_id in raid_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "strikes":
+    elif content_type == "strikes":
         for boss_id in strike_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "strikes cm":
+    elif content_type == "strikes cm":
         for boss_id in strike_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "all":
-        for boss_id in all_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, pingtype))
+    elif content_type == "all":
+        for boss_id in all_boss_ids + golem_ids:
+            cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-    elif choice == "golem":
+    elif content_type == "golem":
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
     await interaction.response.send_message("Removed bosses from track list.")
     return
-
-
-# @bot.event
-# async def personaldps(content, cur):
-#     acctname = content["account"]
-#     # TODO: check if acctname is in tracked list
-#     bossid = content["bossID"]
-#     bossname = content["bossName"]
-#     # TODO: check if bossid is in tracked list
-
-#     # Construct message from POSTed content
-
-#     charname = content["character"]
-#     profession = content["profession"]
-#     overallPB = content["alsoOverallPB"]
-#     dps = content["dps"]
-#     loglink = content["link"]
-
-#     if overallPB:
-#         message = "New personal best DPS log on {}\nClass: {}, also best overall!\nCharacter: {}\nDPS: {}".format(
-#             bossname, profession, charname, dps)
-#     else:
-#         message = "New personal best DPS log on {}\nClass: {}\nCharacter: {}\nDPS: {}".format(
-#             bossname, profession, charname, dps)
-#     log = discord.Embed(
-#         title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
-
-#     # Distribute message
-#     await bot.wait_until_ready()
-#     channel = bot.get_channel(1070109613355192370)
-#     bot.loop.create_task(channel.send(message, embed=log))
-
-
-# @bot.event
-# async def personaltime(content, cur):
-#     # TODO: check if acctname is in tracked list
-#     bossid = content["bossID"]
-#     bossname = content["bossName"]
-#     # TODO: check if bossid is in tracked list
-
-#     # Construct message from POSTed content
-
-#     players = content["players"]
-#     group = content["group_affiliation"]
-#     time = dt.fromtimestamp(content["duration"]/1000).strftime('%M:%S.%f')[:-3]
-#     loglink = content["link"]
-
-#     if group:
-#         message = "New fastest log on {}\nSet by: {}\nPlayers: {}\nTime: {}".format(
-#             bossname, group, players, time)
-#     else:
-#         message = "New fastest log on {}\nPlayers: {}\nTime: {}".format(
-#             bossname, players, time)
-#     log = discord.Embed(
-#         title="Log", url="https://gw2wingman.nevermindcreations.de/log/" + loglink)
-
-#     # Distribute message
-#     await bot.wait_until_ready()
-#     channel = bot.get_channel(1070109613355192370)
-#     bot.loop.create_task(channel.send(message, embed=log))
-
 
 @bot.event
 async def pingreportedlog(content, cur):
@@ -728,16 +565,24 @@ async def patchtimerecord(content, cur):
 
 
 @bot.event
-async def patchdpsrecord(content, cur):
+async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     await bot.wait_until_ready()
 
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
 
-    cur.execute(
-        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-        (bossid, "dps"),
-    )
+    if leaderboardtype == "supportdps":
+        cur.execute(
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+            (bossid, "supportdps"),
+        )
+    elif leaderboardtype == "dps":
+        cur.execute(
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+            (bossid, "dps"),
+        )
+    else:
+        raise Exception("Invalid leaderboardtype")
     rows = cur.fetchall()
 
     # Dont keep going if no channel wants the ping

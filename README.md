@@ -14,12 +14,14 @@ Join the Wingman [Discord Server!](https://discord.gg/zPGwZYUnPH)
 * Check for new PB DPS logs
 * Check for new PB time logs
 * Add channel that will receive pings when there are new DPS or time records on the content you're interested in
-## Future features(soonTM):
+* Exclusive to the Wingman discord server, posts reported logs for discussion
+<!-- ## Future features(soonTM):
 * Compare DPS PB log to patch record log
 * Compare time PB log to patch record log
 * Automatic ping when new PB logs are detected
 * Receive a ping when your wingman leaderboard position changes
 * Role-based pings for new top DPS log
+* Flex on your friends with your top times or dps -->
 
 
 # Running PBBot
