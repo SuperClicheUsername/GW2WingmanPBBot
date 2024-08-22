@@ -34,30 +34,13 @@ async def patchrecord():
         if data["type"] == "time":
             await patchtimerecord(data, cur)
         elif data["type"] == "dps":
-            await patchdpsrecord(data, cur)
+            await patchdpsrecord(data, cur, leaderboardtype="dps")
+        elif data["type"] == "supportdps":
+            await patchdpsrecord(data, cur, leaderboardtype="support")
 
         return "Success"
     else:
         return "Content-Type not supported!"
-
-
-@app.route("/personalbest/", methods=["POST"])
-async def personalbest():
-    content_type = request.headers.get("Content-Type")
-    if content_type == "application/json":
-        data = await request.get_json()
-
-        if data["type"] == "time":
-            # await personaltime(data, cur)
-            pass
-        elif data["type"] == "dps":
-            # await personaldps(data, cur)
-            pass
-
-        return "Success"
-    else:
-        return "Content-Type not supported!"
-
 
 @app.route("/reportlog/", methods=["POST"])
 async def reportlog():
