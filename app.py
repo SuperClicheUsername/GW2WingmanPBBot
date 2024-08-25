@@ -36,7 +36,7 @@ async def patchrecord():
         elif data["type"] == "dps":
             await patchdpsrecord(data, cur, leaderboardtype="dps")
         elif data["type"] == "supportdps":
-            await patchdpsrecord(data, cur, leaderboardtype="support")
+            await patchdpsrecord(data, cur, leaderboardtype="supportdps")
 
         return "Success"
     else:
