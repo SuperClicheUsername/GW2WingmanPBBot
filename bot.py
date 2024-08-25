@@ -91,7 +91,12 @@ async def on_command_error(
         await interaction.response.send_message(
             "You must be a server administrator to use this command.", ephemeral=True
         )
+    if isinstance(error, commands.CommandInvokeError):
+        error = error.original
 
+    if isinstance(error, discord.errors.Forbidden):
+        print("Forbidden error. From Guild:")
+        print(interaction.guild.name)
 
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(api_key="API Key used in Wingman")
@@ -340,6 +345,7 @@ async def about(interaction: discord.Interaction):
 )
 @app_commands.describe(content_type="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
+@app_commands.checks.bot_has_permissions(send_message=True, embed_links=True, view_channel=True)
 @commands.guild_only()
 async def channeltrackboss(
     interaction: discord.Interaction,
