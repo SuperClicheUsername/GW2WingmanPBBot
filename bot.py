@@ -345,7 +345,7 @@ async def about(interaction: discord.Interaction):
 )
 @app_commands.describe(content_type="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.checks.bot_has_permissions(send_message=True, embed_links=True, view_channel=True)
+# @app_commands.checks.bot_has_permissions(send_message=True, embed_links=True, view_channel=True)
 @commands.guild_only()
 async def channeltrackboss(
     interaction: discord.Interaction,
