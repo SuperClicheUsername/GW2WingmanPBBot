@@ -354,6 +354,8 @@ async def channeltrackboss(
 ):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
+    # This seems to be required because this command is too slow and doesn't respond in time.
+    await interaction.defer(thinking=True)
     if content_type == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
@@ -380,16 +382,14 @@ async def channeltrackboss(
             con.commit()
     elif content_type == "golem":
         if ping_type != "dps":
-            await interaction.response.send_message("Only DPS ping_type is supported for golems. Try again.")
+            await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
             return
 
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
 
-    await interaction.response.send_message(
-        "Added bosses to track list. Will ping channel when next patch record is posted",
-    )
+    await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
     return
 
 
