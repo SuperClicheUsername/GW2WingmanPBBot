@@ -352,6 +352,7 @@ async def channeltrackboss(
     ping_type: Literal["dps", "time", "supportdps"],
     content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
+    await interaction.defer(thinking=True)
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     if content_type == "fractals":
@@ -359,47 +360,47 @@ async def channeltrackboss(
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
         # I know it looks stupid. It didnt work putting the response below the if statements.    
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "raids":
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "raids cm":
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "strikes":
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "strikes cm":
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "all":
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
     elif content_type == "golem":
         if ping_type != "dps":
-            await interaction.response.send_message("Only DPS ping type is supported for golems. Try again.")
+            await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
             return
 
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
-        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
         return
 
 
@@ -414,6 +415,7 @@ async def channeluntrackboss(
     ping_type: Literal["dps", "time", "supportdps"],
     content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
+    await interaction.defer(thinking=True)
     channel_id = interaction.channel_id
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
     if content_type == "fractals":
@@ -444,7 +446,7 @@ async def channeluntrackboss(
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
-    await interaction.response.send_message("Removed bosses from track list.")
+    await interaction.followup.send("Removed bosses from track list.")
     return
 
 @bot.event
