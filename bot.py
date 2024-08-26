@@ -354,43 +354,53 @@ async def channeltrackboss(
 ):
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    # This seems to be required because this command is too slow and doesn't respond in time.
-    await interaction.defer(thinking=True)
     if content_type == "fractals":
         for boss_id in fractal_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        # I know it looks stupid. It didnt work putting the response below the if statements.    
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "raids":
         for boss_id in raid_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "raids cm":
         for boss_id in raid_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "strikes":
         for boss_id in strike_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "strikes cm":
         for boss_id in strike_cm_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "all":
         for boss_id in all_boss_ids:
             cur.execute(sql, (channel_id, boss_id, ping_type))
             con.commit()
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
     elif content_type == "golem":
         if ping_type != "dps":
-            await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
+            await interaction.response.send_message("Only DPS ping type is supported for golems. Try again.")
             return
 
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
-
-    await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
-    return
+        await interaction.response.send_message("Added bosses to track list. Will post in this channel when the next patch record is posted")
+        return
 
 
 @bot.tree.command(
