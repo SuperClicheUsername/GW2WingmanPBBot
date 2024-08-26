@@ -352,7 +352,7 @@ async def channeltrackboss(
     ping_type: Literal["dps", "time", "supportdps"],
     content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
-    await interaction.defer(thinking=True)
+    await interaction.response.defer(thinking=True)
     channel_id = interaction.channel_id
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     if content_type == "fractals":
@@ -415,7 +415,7 @@ async def channeluntrackboss(
     ping_type: Literal["dps", "time", "supportdps"],
     content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
 ):
-    await interaction.defer(thinking=True)
+    await interaction.response.defer(thinking=True)
     channel_id = interaction.channel_id
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
     if content_type == "fractals":
