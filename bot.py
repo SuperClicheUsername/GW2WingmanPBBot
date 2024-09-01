@@ -7,13 +7,11 @@ import urllib.request
 from datetime import datetime as dt
 from datetime import timezone
 from os.path import exists
-from pprint import pprint
-from typing import Literal
+from typing import Literal, Optional
 
 import discord
-import requests
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord.utils import get
 
 import startupvars
@@ -105,17 +103,24 @@ async def on_command_error(
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(api_key="API Key used in Wingman")
 async def adduser(interaction: discord.Interaction, api_key: str):
+    # TODO: if userid in db:
+    #    response "user id already has a api key. changing to new api key"
+    # id integer,
+    #     apikey text,
+    #     boss_id integer,
+    #     lastchecked text
     if isapikeyvalid(api_key):
-        workingdata["user"][interaction.user.id] = {
-            "apikey": None,
-            "tracked_boss_ids": set(),
-            "lastchecked": None,
-        }
-        workingdata["user"][interaction.user.id]["apikey"] = api_key
-        await interaction.response.send_message(
-            "Valid API key. Saving. Do /track next", ephemeral=True
-        )
-        savedata()
+        insertsql = """INSERT INTO users VALUES(?,?,?,?)"""
+        cur.execute(insertsql, (interaction.user.id, api_key, None, None))
+        con.commit()
+        # workingdata["user"][interaction.user.id] = {
+        #     "apikey": None,
+        #     "tracked_boss_ids": set(),
+        #     "lastchecked": None,
+        # }
+        # workingdata["user"][interaction.user.id]["apikey"] = api_key
+        await interaction.response.send_message("Saving API Key.", ephemeral=True)
+        # savedata()
     else:
         await interaction.response.send_message(
             "Invalid API key. Make sure it is the same API key Wingman uses.",
@@ -260,7 +265,7 @@ async def check(interaction: discord.Interaction):
         savedata()
     elif workingdata["user"][userid]["apikey"] is None:
         await interaction.response.send_message(
-            "Error. You need to add your api key first. Do /useradd"
+            "Error. You need to add your api key first. Do /adduser"
         )
     else:
         await interaction.response.send_message(
@@ -382,6 +387,107 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     cur.execute(deletesql, (channel_id))
     con.commit()
     await interaction.response.send_message("Success!")
+
+
+@bot.tree.command(description="Remove channel_id from database")
+@commands.is_owner()
+async def flex(
+    interaction: discord.Interaction,
+    type: Literal["time", "dps", "support"],
+    patch_id: Optional[str] = "latest",
+    content: Optional[Literal["raids", "fractals", "strikes", "all"]] = "all",
+    spec: Optional[str] = "overall",
+):
+    # Check for apikey and retrieve data
+    userid = interaction.user.id
+    selectsql = f"""SELECT DISTINCT apikey FROM users WHERE id = '{userid}'"""
+    cur.execute(selectsql)
+    apikey = cur.fetchall()[0]
+    if apikey is None:
+        await interaction.response.send_message(
+            "Error. You need to add your api key first. Do /adduser"
+        )
+        return
+    with urllib.request.urlopen(
+        "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
+            apikey
+        )
+    ) as url:
+        playerstatdump = json.load(url)
+
+    # Handle the command arguments
+    if patch_id == "latest":
+        patch_id = list(playerstatdump["topBossTimes"].keys())[-2]
+    bossescompleted = set(playerstatdump["topBossTimes"][patch_id].keys())
+    if content == "raids":
+        bossestocheck = set(raid_boss_ids + raid_cm_boss_ids)
+    elif content == "fractals":
+        bossestocheck = set(fractal_cm_boss_ids)
+    elif content == "strikes":
+        bossestocheck = set(strike_boss_ids + strike_cm_boss_ids)
+    elif content == "all":
+        bossestocheck = set(all_boss_ids)
+    # Intersection of bosses completed and bosses being checked
+    boss_ids = bossescompleted & bossestocheck
+
+    # Create the embed
+    accountname = playerstatdump["account"]
+    embed = discord.Embed(
+        title="{}'s best {} logs".format(accountname, type),
+        description="For the {} patch in {} on {}".format(patch_id, content, spec),
+    )
+
+    bossnamelinks = ""
+    stat = ""
+    # All the data we need
+    if type == "time":
+        for id in boss_ids:
+            bossname = bossidtoname[id]
+            link = (
+                "https://gw2wingman.nevermindcreations.de/log/"
+                + playerstatdump["topBossTimes"][patch_id][id]["link"]
+            )
+            bossnamelinks += "[{}]({})\n".format(bossname, link)
+
+            duration = playerstatdump["topBossTimes"][patch_id][id]["durationMS"]
+            stat += dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3] + "\n"
+        embed.add_field(name="Boss", value=bossnamelinks)
+        embed.add_field(name="Time", value=stat)
+    if type == "dps":
+        for id in boss_ids:
+            if spec in playerstatdump["topPerformances"][patch_id][id].keys():
+                bossname = bossidtoname[id]
+                link = (
+                    "https://gw2wingman.nevermindcreations.de/log/"
+                    + playerstatdump["topPerformances"][patch_id][id][spec]["link"]
+                )
+                bossnamelinks += "[{}]({})\n".format(bossname, link)
+
+                dps = playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"]
+                stat += dps + "\n"
+        embed.add_field(name="Boss", value=bossnamelinks)
+        embed.add_field(name="DPS", value=stat)
+    if type == "support":
+        for id in boss_ids:
+            if spec in playerstatdump["topPerformances"][patch_id][id].keys():
+                bossname = bossidtoname[id]
+                link = (
+                    "https://gw2wingman.nevermindcreations.de/log/"
+                    + playerstatdump["topPerformancesSupport"][patch_id][id][spec][
+                        "link"
+                    ]
+                )
+                dps = playerstatdump["topPerformancesSupport"][patch_id][id][spec][
+                    "topDPS"
+                ]
+                # If they haven't played support on that boss/spec that patch skip boss
+                if dps == "0":
+                    continue
+
+                bossnamelinks += "[{}]({})\n".format(bossname, link)
+                stat += dps + "\n"
+        embed.add_field(name="Boss", value=bossnamelinks)
+        embed.add_field(name="Support DPS", value=stat)
 
 
 @bot.tree.command(description="Links the about info")
