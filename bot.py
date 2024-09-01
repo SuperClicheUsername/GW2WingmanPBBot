@@ -293,9 +293,12 @@ async def addnewbossid(
     rows = cur.fetchall()
     dpschannelids = [item[0] for item in rows if item[1] == "dps"]
     timechannelids = [item[0] for item in rows if item[1] == "time"]
+    supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
 
     for channel_id in dpschannelids:
         cur.execute(insertsql, (channel_id, new_boss_id, "dps"))
+    for channel_id in supportdpschannelids:
+        cur.execute(insertsql, (channel_id, new_boss_id, "supportdps"))
     for channel_id in timechannelids:
         cur.execute(insertsql, (channel_id, new_boss_id, "time"))
     con.commit()
@@ -329,6 +332,7 @@ async def removenewbossid(
     rows = cur.fetchall()
     dpschannelids = [item[0] for item in rows if item[1] == "dps"]
     timechannelids = [item[0] for item in rows if item[1] == "time"]
+    supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
 
     for channel_id in dpschannelids:
         deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
@@ -336,6 +340,9 @@ async def removenewbossid(
     for channel_id in timechannelids:
         deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
         cur.execute(deletesql, (channel_id, new_boss_id, "time"))
+    for channel_id in supportdpschannelids:
+        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
+        cur.execute(deletesql, (channel_id, new_boss_id, "supportdps"))
     con.commit()
 
     numservers = len(rows)
@@ -346,9 +353,13 @@ async def removenewbossid(
 @bot.tree.command(description="What the heck is going on")
 @commands.is_owner()
 async def debugchannels(interaction: discord.Interaction):
-    selectsql = """SELECT DISTINCT id FROM bossserverchannels"""
+    selectsql = """SELECT DISTINCT id, type FROM bossserverchannels"""
     cur.execute(selectsql)
-    channel_ids = cur.fetchall()
+    rows = cur.fetchall()
+    dpschannelids = [item[0] for item in rows if item[1] == "dps"]
+    timechannelids = [item[0] for item in rows if item[1] == "time"]
+    supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
+    channel_ids = list(set(dpschannelids + timechannelids + supportdpschannelids))
 
     for channel_id in channel_ids:
         channel = bot.get_channel(channel_id)
