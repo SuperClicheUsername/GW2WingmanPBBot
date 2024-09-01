@@ -8,6 +8,7 @@ from datetime import datetime as dt
 from datetime import timezone
 from os.path import exists
 from typing import Literal
+from pprint import pprint
 
 import discord
 import requests
@@ -702,10 +703,14 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
         except:
             print("Failed to write to channel: " + str(channel.id))
 
+def exception_handler(loop, context):
+    print('Exception handler called')
+    pprint(context)
 
 with open("data/discord_token.txt") as f:
     token = f.readline()
 
 
 def run_discord_bot():
+    bot.loop.set_exception_handler(exception_handler)
     bot.run(token)
