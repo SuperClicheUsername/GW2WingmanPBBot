@@ -374,6 +374,16 @@ async def debugchannels(interaction: discord.Interaction):
     await interaction.response.send_message("Results sent to log.")
 
 
+@bot.tree.command(description="Remove channel_id from database")
+@commands.is_owner()
+async def prune_channel(interaction: discord.Interaction, channel_id: str):
+    print("Removing channel: " + channel_id)
+    deletesql = """DELETE FROM bossserverchannels WHERE id = ?"""
+    cur.execute(deletesql, (channel_id))
+    con.commit()
+    await interaction.response.send_message("Success!")
+
+
 @bot.tree.command(description="Links the about info")
 async def about(interaction: discord.Interaction):
     embed = discord.Embed(
