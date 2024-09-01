@@ -343,6 +343,21 @@ async def removenewbossid(
     await interaction.response.send_message(f"Success! Removed boss {numservers} times")
 
 
+@bot.tree.command(description="What the heck is going on")
+@commands.is_owner()
+async def debugchannels(interaction: discord.Interaction):
+    selectsql = """SELECT DISTINCT id FROM bossserverchannels"""
+    cur.execute(selectsql)
+    channel_ids = cur.fetchall()
+
+    for channel_id in channel_ids:
+        channel = bot.get_channel(channel_id)
+        print(channel_id)
+        print(channel.guild.name)
+        print(channel.guild.unavailable)
+        print(channel.guild.owner.name)
+
+
 @bot.tree.command(description="Links the about info")
 async def about(interaction: discord.Interaction):
     embed = discord.Embed(
