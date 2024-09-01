@@ -566,7 +566,12 @@ async def patchtimerecord(content, cur):
 
     for row in rows:
         channel = bot.get_channel(row[0])
-        bot.loop.create_task(channel.send(embed=log))
+        if channel is None:
+            continue
+        try:
+            bot.loop.create_task(channel.send(embed=log))
+        except:
+            print("Failed to write to channel: " + str(channel.id))
 
 
 @bot.event
@@ -639,10 +644,16 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     groups = ", ".join(content["group"])
     loglink = content["link"]
 
-    log = discord.Embed(
-        title="New DPS record log on {}".format(bossname),
-        url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
-    )
+    if leaderboardtype == "dps":
+        log = discord.Embed(
+            title="New DPS record log on {}".format(bossname),
+            url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
+        )
+    elif leaderboardtype == "supportdps":
+        log = discord.Embed(
+            title="New Support DPS record log on {}".format(bossname),
+            url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
+        )
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
@@ -664,7 +675,10 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
         iconurl = "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
         log.set_thumbnail(url=iconurl)
 
-    log.add_field(name="DPS", value=dpsstring, inline=True)
+    if leaderboardtype == "dps":
+        log.add_field(name="DPS", value=dpsstring, inline=True)
+    elif leaderboardtype == "supportdps":
+        log.add_field(name="SupportDPS", value=dpsstring, inline=True)
     log.add_field(name="Era", value=era, inline=True)
 
     emoji = get(bot.emojis, name=profession)
@@ -676,12 +690,17 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
 
     for row in rows:
         channel = bot.get_channel(row[0])
+        if channel is None:
+            continue
         # If the user is in the guild, ping them.
         # if channel.guild.get_member(discordID):
         #    log.add_field(
         #        name="Mention", value=bot.get_user(discordID).mention, inline=True
         #    )
-        bot.loop.create_task(channel.send(embed=log))
+        try:
+            bot.loop.create_task(channel.send(embed=log))
+        except:
+            print("Failed to write to channel: " + str(channel.id))
 
 
 with open("data/discord_token.txt") as f:
