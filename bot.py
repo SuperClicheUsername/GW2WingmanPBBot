@@ -678,7 +678,7 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     if leaderboardtype == "dps":
         log.add_field(name="DPS", value=dpsstring, inline=True)
     elif leaderboardtype == "supportdps":
-        log.add_field(name="SupportDPS", value=dpsstring, inline=True)
+        log.add_field(name="Support DPS", value=dpsstring, inline=True)
     log.add_field(name="Era", value=era, inline=True)
 
     emoji = get(bot.emojis, name=profession)
