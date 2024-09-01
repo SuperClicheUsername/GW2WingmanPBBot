@@ -92,12 +92,8 @@ async def on_command_error(
         await interaction.response.send_message(
             "You must be a server administrator to use this command.", ephemeral=True
         )
-    if isinstance(error, commands.CommandInvokeError):
+    else:
         error = error.original
-
-    if isinstance(error, discord.errors.Forbidden):
-        print("Forbidden error. From Guild:")
-        print(interaction.guild.name)
 
 
 @bot.tree.command(description="Add a user to be tracked")
@@ -446,7 +442,7 @@ async def flex(
         title="{}'s best {} logs".format(accountname, type),
         description="For the {} patch in {} on {}".format(patch_id, content, spec),
     )
-    "Constructed Embed"
+    print("Constructed Embed")
     bossnamelinks = ""
     stat = ""
     # Construct embed based on the data and arguments
