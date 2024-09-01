@@ -439,7 +439,7 @@ async def flex(
 
     bossnamelinks = ""
     stat = ""
-    # All the data we need
+    # Construct embed based on the data and arguments
     if type == "time":
         for id in boss_ids:
             bossname = bossidtoname[id]
@@ -488,6 +488,7 @@ async def flex(
                 stat += dps + "\n"
         embed.add_field(name="Boss", value=bossnamelinks)
         embed.add_field(name="Support DPS", value=stat)
+    await interaction.response.send_message(embed=embed)
 
 
 @bot.tree.command(description="Links the about info")
