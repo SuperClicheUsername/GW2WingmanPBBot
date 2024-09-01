@@ -7,8 +7,8 @@ import urllib.request
 from datetime import datetime as dt
 from datetime import timezone
 from os.path import exists
-from typing import Literal
 from pprint import pprint
+from typing import Literal
 
 import discord
 import requests
@@ -36,6 +36,7 @@ global con
 con = sqlite3.connect(dbfilename)
 global cur
 cur = con.cursor()
+
 
 def savedata():
     with open("data/workingdata.pkl", "wb") as f:
@@ -66,6 +67,7 @@ def logtimestampfromlink(link):
         timestamp = link[5:20] + " -0500"
     timestamp = dt.strptime(timestamp, format_data)
     return timestamp
+
 
 @bot.event
 async def on_ready():
@@ -99,6 +101,7 @@ async def on_command_error(
         print("Forbidden error. From Guild:")
         print(interaction.guild.name)
 
+
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(api_key="API Key used in Wingman")
 async def adduser(interaction: discord.Interaction, api_key: str):
@@ -115,7 +118,8 @@ async def adduser(interaction: discord.Interaction, api_key: str):
         savedata()
     else:
         await interaction.response.send_message(
-            "Invalid API key. Make sure it is the same API key Wingman uses.", ephemeral=True
+            "Invalid API key. Make sure it is the same API key Wingman uses.",
+            ephemeral=True,
         )
 
 
@@ -123,7 +127,9 @@ async def adduser(interaction: discord.Interaction, api_key: str):
 @app_commands.describe(content_type="The content you want to track")
 async def track(
     interaction: discord.Interaction,
-    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem"],
+    content_type: Literal[
+        "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem"
+    ],
 ):
     user = interaction.user.id
     if user not in workingdata["user"].keys():
@@ -265,7 +271,11 @@ async def check(interaction: discord.Interaction):
 @bot.tree.command(description="Add tracking for when game adds new boss")
 @app_commands.describe(new_boss_id="Positive new boss id")
 @commands.is_owner()
-async def addnewbossid(interaction: discord.Interaction, boss_type: Literal["fractals", "raids", "strikes", "golem"], new_boss_id: str):
+async def addnewbossid(
+    interaction: discord.Interaction,
+    boss_type: Literal["fractals", "raids", "strikes", "golem"],
+    new_boss_id: str,
+):
     # Example boss of each type we search to find channels with each type
     if boss_type == "raids":
         bossid = "19450"
@@ -275,7 +285,7 @@ async def addnewbossid(interaction: discord.Interaction, boss_type: Literal["fra
         bossid = "-17759"
     elif boss_type == "golem":
         bossid = "16199"
-        
+
     selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
     insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
 
@@ -298,7 +308,11 @@ async def addnewbossid(interaction: discord.Interaction, boss_type: Literal["fra
 @bot.tree.command(description="Add tracking for when game adds new boss")
 @app_commands.describe(new_boss_id="Positive new boss id")
 @commands.is_owner()
-async def removenewbossid(interaction: discord.Interaction, boss_type: Literal["fractals", "raids", "strikes", "golem"], new_boss_id: str):
+async def removenewbossid(
+    interaction: discord.Interaction,
+    boss_type: Literal["fractals", "raids", "strikes", "golem"],
+    new_boss_id: str,
+):
     # Example boss of each type we search to find channels with each type
     if boss_type == "raids":
         bossid = "19450"
@@ -308,9 +322,8 @@ async def removenewbossid(interaction: discord.Interaction, boss_type: Literal["
         bossid = "-17759"
     elif boss_type == "golem":
         bossid = "16199"
-        
+
     selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
-    
 
     cur.execute(selectsql)
     rows = cur.fetchall()
@@ -328,6 +341,7 @@ async def removenewbossid(interaction: discord.Interaction, boss_type: Literal["
     numservers = len(rows)
     print("Added new boss id: " + str(new_boss_id) + " to bosstype: " + str(boss_type))
     await interaction.response.send_message(f"Success! Removed boss {numservers} times")
+
 
 @bot.tree.command(description="Links the about info")
 async def about(interaction: discord.Interaction):
@@ -351,7 +365,9 @@ async def about(interaction: discord.Interaction):
 async def channeltrackboss(
     interaction: discord.Interaction,
     ping_type: Literal["dps", "time", "supportdps"],
-    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
+    content_type: Literal[
+        "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
+    ],
 ):
     await interaction.response.defer(thinking=True)
     channel_id = interaction.channel_id
@@ -382,13 +398,17 @@ async def channeltrackboss(
             con.commit()
     elif content_type == "golem":
         if ping_type != "dps":
-            await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
+            await interaction.followup.send(
+                "Only DPS ping type is supported for golems. Try again."
+            )
             return
 
         for boss_id in golem_ids:
             cur.execute(sql, (channel_id, boss_id, "dps"))
             con.commit()
-    await interaction.followup.send("Added bosses to track list. Will post in this channel when the next patch record is posted")
+    await interaction.followup.send(
+        "Added bosses to track list. Will post in this channel when the next patch record is posted"
+    )
     return
 
 
@@ -401,7 +421,9 @@ async def channeltrackboss(
 async def channeluntrackboss(
     interaction: discord.Interaction,
     ping_type: Literal["dps", "time", "supportdps"],
-    content_type: Literal["fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"],
+    content_type: Literal[
+        "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
+    ],
 ):
     await interaction.response.defer(thinking=True)
     channel_id = interaction.channel_id
@@ -437,6 +459,7 @@ async def channeluntrackboss(
     await interaction.followup.send("Removed bosses from track list.")
     return
 
+
 @bot.event
 async def pingreportedlog(content, cur):
     await bot.wait_until_ready()
@@ -462,6 +485,7 @@ async def pingreportedlog(content, cur):
     bot.loop.create_task(channel.send(embed=log))
     print("Log reported {}, reason: {}".format(loglink, reasontext))
 
+
 @bot.event
 async def internalmessage(content, cur):
     # Echos any message sent to the /internalmessage/ endpoint to the internal botspam channel
@@ -472,6 +496,7 @@ async def internalmessage(content, cur):
     channel = bot.get_channel(internalmessagechannel)
     bot.loop.create_task(channel.send(content=message))
     print("Internal message {}".format(message))
+
 
 @bot.event
 async def patchtimerecord(content, cur):
@@ -606,7 +631,7 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
         bossname = content["bossName"] + " CM"
     else:
         bossname = content["bossName"]
-    
+
     #  Negative boss IDs are CMs
     if bossid.startswith("-"):
         # Check for legendary key first because not all bosses will have it
@@ -702,6 +727,7 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
             bot.loop.create_task(channel.send(embed=log))
         except:
             print("Failed to write to channel: " + str(channel.id))
+
 
 with open("data/discord_token.txt") as f:
     token = f.readline()
