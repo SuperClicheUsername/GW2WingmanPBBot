@@ -364,9 +364,14 @@ async def debugchannels(interaction: discord.Interaction):
     for channel_id in channel_ids:
         channel = bot.get_channel(channel_id)
         print(channel_id)
-        print(channel.guild.name)
-        print(channel.guild.unavailable)
-        print(channel.guild.owner.name)
+        try:
+            print(channel.guild.unavailable)
+            print(channel.guild.name)
+            print(channel.guild.owner.name)
+        except:
+            print("Guild info did not work")
+            continue
+    await interaction.response.send_message("Results sent to log.")
 
 
 @bot.tree.command(description="Links the about info")
