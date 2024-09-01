@@ -414,13 +414,16 @@ async def flex(
             "Error. More than one API key associated with discord user. How did you manage that?"
         )
         return
+
     apikey = rows[0][0]
+    print("Found API key")
     with urllib.request.urlopen(
         "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
             apikey
         )
     ) as url:
         playerstatdump = json.load(url)
+    print("Retrieved data")
 
     # Handle the command arguments
     if patch_id == "latest":
@@ -443,7 +446,7 @@ async def flex(
         title="{}'s best {} logs".format(accountname, type),
         description="For the {} patch in {} on {}".format(patch_id, content, spec),
     )
-
+    "Constructed Embed"
     bossnamelinks = ""
     stat = ""
     # Construct embed based on the data and arguments
@@ -495,6 +498,7 @@ async def flex(
                 stat += dps + "\n"
         embed.add_field(name="Boss", value=bossnamelinks)
         embed.add_field(name="Support DPS", value=stat)
+    print("Added data. Sending message")
     await interaction.followup.send(embed=embed)
 
 
