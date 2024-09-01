@@ -398,16 +398,23 @@ async def flex(
     content: Optional[Literal["raids", "fractals", "strikes", "all"]] = "all",
     spec: Optional[str] = "overall",
 ):
+    await interaction.response.defer(thinking=True)
     # Check for apikey and retrieve data
     userid = interaction.user.id
     selectsql = f"""SELECT DISTINCT apikey FROM users WHERE id = '{userid}'"""
     cur.execute(selectsql)
-    apikey = cur.fetchall()[0]
-    if apikey is None:
-        await interaction.response.send_message(
-            "Error. You need to add your api key first. Do /adduser"
+    rows = cur.fetchall()
+    if rows == []:
+        await interaction.followup.send(
+            "Error. You need to add your API key first. Do /adduser"
         )
         return
+    if len(rows) > 1:
+        await interaction.followup.send(
+            "Error. More than one API key associated with discord user. How did you manage that?"
+        )
+        return
+    apikey = rows[0][0]
     with urllib.request.urlopen(
         "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
             apikey
@@ -488,7 +495,7 @@ async def flex(
                 stat += dps + "\n"
         embed.add_field(name="Boss", value=bossnamelinks)
         embed.add_field(name="Support DPS", value=stat)
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 @bot.tree.command(description="Links the about info")
