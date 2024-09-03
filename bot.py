@@ -435,7 +435,7 @@ async def flex(
         bossestocheck = set(all_boss_ids)
     # Intersection of bosses completed and bosses being checked
     boss_ids = bossescompleted & bossestocheck
-
+    print(boss_ids)
     # Create the embed
     accountname = playerstatdump["account"]
     embed = discord.Embed(
@@ -457,6 +457,8 @@ async def flex(
 
             duration = playerstatdump["topBossTimes"][patch_id][id]["durationMS"]
             stat += dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3] + "\n"
+        print(bossnamelinks)
+        print(stat)
         embed.add_field(name="Boss", value=bossnamelinks)
         embed.add_field(name="Time", value=stat)
     if type == "dps":
