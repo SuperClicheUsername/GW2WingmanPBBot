@@ -67,6 +67,11 @@ all_boss_ids = (
     + raid_cm_boss_ids
 )
 
+raid_id_set = set(raid_boss_ids + raid_cm_boss_ids)
+fractal_id_set = set(fractal_cm_boss_ids)
+strike_id_set = set(strike_boss_ids + strike_cm_boss_ids)
+all_id_set = set(all_boss_ids)
+
 
 def patchIDdump():
     # Grab most recent patch ID

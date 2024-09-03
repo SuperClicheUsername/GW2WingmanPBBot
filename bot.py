@@ -67,6 +67,36 @@ def logtimestampfromlink(link):
     return timestamp
 
 
+# Helper function ensures embed bodies are not more than 1024 characters each.
+def embed_wrap(bosslinks, stats):
+    bosslinkresult = []
+    statresult = []
+    bosslink_string = ""
+    stat_string = ""
+
+    for i, s in enumerate(bosslinks):
+        # Check if adding the next string would exceed the limit
+        if len(bosslink_string) + len(s) + 1 > 1024:
+            bosslinkresult.append(bosslink_string)
+            statresult.append(stat_string)
+            bosslink_string = s  # Start a new string
+            stat_string = stats[i]
+        else:
+            if bosslink_string:
+                bosslink_string += "\n" + s
+                stat_string += "\n" + stats[i]
+            else:
+                bosslink_string = s
+                stat_string = stats[i]
+
+    # Add the last string if it's not empty
+    if bosslink_string:
+        bosslinkresult.append(bosslink_string)
+        statresult.append(stat_string)
+
+    return bosslinkresult, statresult
+
+
 @bot.event
 async def on_ready():
     global workingdata, con, cur, aleeva_token
@@ -385,7 +415,7 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     await interaction.response.send_message("Success!")
 
 
-@bot.tree.command(description="Remove channel_id from database")
+@bot.tree.command(description="Flex on your friends by sharing your best logs")
 @commands.is_owner()
 async def flex(
     interaction: discord.Interaction,
@@ -419,66 +449,82 @@ async def flex(
         )
     ) as url:
         playerstatdump = json.load(url)
-    print("Retrieved data")
 
     # Handle the command arguments
     if patch_id == "latest":
         patch_id = list(playerstatdump["topBossTimes"].keys())[-2]
     bossescompleted = set(playerstatdump["topBossTimes"][patch_id].keys())
     if content == "raids":
-        bossestocheck = set(raid_boss_ids + raid_cm_boss_ids)
+        bossestocheck = raid_id_set
     elif content == "fractals":
-        bossestocheck = set(fractal_cm_boss_ids)
+        bossestocheck = fractal_id_set
     elif content == "strikes":
-        bossestocheck = set(strike_boss_ids + strike_cm_boss_ids)
+        bossestocheck = strike_id_set
     elif content == "all":
-        bossestocheck = set(all_boss_ids)
+        bossestocheck = all_id_set
     # Intersection of bosses completed and bosses being checked
     boss_ids = bossescompleted & bossestocheck
-    print(boss_ids)
+    if len(boss_ids) < 1:
+        await interaction.followup.send("Did not find any logs for your settings.")
+        return
+
     # Create the embed
     accountname = playerstatdump["account"]
     embed = discord.Embed(
         title="{}'s best {} logs".format(accountname, type),
         description="For the {} patch in {} on {}".format(patch_id, content, spec),
     )
-    print("Constructed Embed")
-    bossnamelinks = ""
-    stat = ""
+
+    bossnamelinks = []
+    stats = []
     # Construct embed based on the data and arguments
     if type == "time":
         for id in boss_ids:
-            bossname = bossidtoname[id]
+            if id.startswith("-"):
+                bossname = bossidtoname[id[1:]] + " CM"
+            else:
+                bossname = bossidtoname[id]
             link = (
                 "https://gw2wingman.nevermindcreations.de/log/"
                 + playerstatdump["topBossTimes"][patch_id][id]["link"]
             )
-            bossnamelinks += "[{}]({})\n".format(bossname, link)
+            bossnamelinks.append("[{}]({})".format(bossname, link))
 
             duration = playerstatdump["topBossTimes"][patch_id][id]["durationMS"]
-            stat += dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3] + "\n"
-        print(bossnamelinks)
-        print(stat)
-        embed.add_field(name="Boss", value=bossnamelinks)
-        embed.add_field(name="Time", value=stat)
+            stats.append(dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3])
+        bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
+        for i, body in enumerate(bossnamebody):
+            embed.add_field(name="Boss", value=body, inline=True)
+            embed.add_field(name="Time", value=statbody[i], inline=True)
+            embed.add_field(name=" ", value=" ")
     if type == "dps":
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
-                bossname = bossidtoname[id]
+                if id.startswith("-"):
+                    bossname = bossidtoname[id[1:]] + " CM"
+                else:
+                    bossname = bossidtoname[id]
                 link = (
                     "https://gw2wingman.nevermindcreations.de/log/"
                     + playerstatdump["topPerformances"][patch_id][id][spec]["link"]
                 )
-                bossnamelinks += "[{}]({})\n".format(bossname, link)
+                bossnamelinks.append("[{}]({})".format(bossname, link))
 
                 dps = playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"]
-                stat += dps + "\n"
-        embed.add_field(name="Boss", value=bossnamelinks)
-        embed.add_field(name="DPS", value=stat)
+                stats.append(str(dps))
+        bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
+        for i, body in enumerate(bossnamebody):
+            embed.add_field(name="Boss", value=body, inline=True)
+            embed.add_field(name="Time", value=statbody[i], inline=True)
+            embed.add_field(name=" ", value=" ")
     if type == "support":
+        allzeros = True
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
-                bossname = bossidtoname[id]
+                if id.startswith("-"):
+                    bossname = bossidtoname[id[1:]] + " CM"
+                else:
+                    bossname = bossidtoname[id]
                 link = (
                     "https://gw2wingman.nevermindcreations.de/log/"
                     + playerstatdump["topPerformancesSupport"][patch_id][id][spec][
@@ -489,14 +535,25 @@ async def flex(
                     "topDPS"
                 ]
                 # If they haven't played support on that boss/spec that patch skip boss
-                if dps == "0":
+                if dps == 0:
                     continue
 
-                bossnamelinks += "[{}]({})\n".format(bossname, link)
-                stat += dps + "\n"
-        embed.add_field(name="Boss", value=bossnamelinks)
-        embed.add_field(name="Support DPS", value=stat)
-    print("Added data. Sending message")
+                allzeros = False
+                bossnamelinks.append("[{}]({})".format(bossname, link))
+                stats.append(str(dps))
+
+        # Special case because if you haven't played support it shows as zero instead of not existing
+        if allzeros:
+            await interaction.response.send(
+                "Did not find any support logs for your settings."
+            )
+            return
+        else:
+            bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
+            for i, body in enumerate(bossnamebody):
+                embed.add_field(name="Boss", value=body, inline=True)
+                embed.add_field(name="Time", value=statbody[i], inline=True)
+                embed.add_field(name=" ", value=" ")
     await interaction.followup.send(embed=embed)
 
 
