@@ -415,11 +415,16 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     await interaction.response.send_message("Success!")
 
 
-@bot.tree.command(description="Flex on your friends by sharing your best logs")
-@commands.is_owner()
+@bot.tree.command(description="Flex on your friends by sharing your best logs.")
+@app_commands.describe(
+    leaderboard="Which type of leaderboard you would like to show.",
+    patch_id="Optional - Patch ID, by default will show the latest. Patch IDs are generally 'YY-MM'",
+    content="Optional - The bosses you would like to show organized by content type. Defaults to all. Includes normal and CMs.",
+    spec="Optional - The specialization you want to show. Defaults to overall which includes all specs.",
+)
 async def flex(
     interaction: discord.Interaction,
-    type: Literal["time", "dps", "support"],
+    leaderboard: Literal["time", "dps", "support"],
     patch_id: Optional[str] = "latest",
     content: Optional[Literal["raids", "fractals", "strikes", "all"]] = "all",
     spec: Optional[str] = "overall",
@@ -471,14 +476,14 @@ async def flex(
     # Create the embed
     accountname = playerstatdump["account"]
     embed = discord.Embed(
-        title="{}'s best {} logs".format(accountname, type),
+        title="{}'s best {} logs".format(accountname, leaderboard),
         description="For the {} patch in {} on {}".format(patch_id, content, spec),
     )
 
     bossnamelinks = []
     stats = []
     # Construct embed based on the data and arguments
-    if type == "time":
+    if leaderboard == "time":
         for id in boss_ids:
             if id.startswith("-"):
                 bossname = bossidtoname[id[1:]] + " CM"
@@ -497,7 +502,7 @@ async def flex(
             embed.add_field(name="Boss", value=body, inline=True)
             embed.add_field(name="Time", value=statbody[i], inline=True)
             embed.add_field(name=" ", value=" ")
-    if type == "dps":
+    if leaderboard == "dps":
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
                 if id.startswith("-"):
@@ -517,7 +522,7 @@ async def flex(
             embed.add_field(name="Boss", value=body, inline=True)
             embed.add_field(name="Time", value=statbody[i], inline=True)
             embed.add_field(name=" ", value=" ")
-    if type == "support":
+    if leaderboard == "support":
         allzeros = True
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
