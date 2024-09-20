@@ -132,7 +132,7 @@ async def adduser(interaction: discord.Interaction, api_key: str):
 
     if isapikeyvalid(api_key):
         # Remove any old apikeys do ensure theres not multiple for some reason.
-        deletesql = f"""DELETE FROM users WHERE api_key = '{api_key}'"""
+        deletesql = f"""DELETE FROM users WHERE id = '{interaction.user.id}'"""
         cur.execute(deletesql)
         insertsql = """INSERT INTO users VALUES(?,?,?,?)"""
         cur.execute(insertsql, (interaction.user.id, api_key, None, None))
