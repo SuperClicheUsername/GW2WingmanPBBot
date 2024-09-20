@@ -129,13 +129,11 @@ async def on_command_error(
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(api_key="API Key used in Wingman")
 async def adduser(interaction: discord.Interaction, api_key: str):
-    # TODO: if userid in db:
-    #    response "user id already has a api key. changing to new api key"
-    # id integer,
-    #     apikey text,
-    #     boss_id integer,
-    #     lastchecked text
+
     if isapikeyvalid(api_key):
+        # Remove any old apikeys do ensure theres not multiple for some reason.
+        deletesql = f"""DELETE FROM users WHERE api_key = '{api_key}'"""
+        cur.execute(deletesql)
         insertsql = """INSERT INTO users VALUES(?,?,?,?)"""
         cur.execute(insertsql, (interaction.user.id, api_key, None, None))
         con.commit()
