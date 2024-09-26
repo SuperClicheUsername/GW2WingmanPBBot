@@ -575,77 +575,78 @@ async def internalmessage(content):
     bot.loop.create_task(channel.send(content=message))
     print(f"Internal message {message}")
 
+def determine_era(content, patchidlist):
+    if content["eraID"] == "all":
+        return "All Time"
+    elif content["eraID"] not in patchidlist:
+        importlib.reload(startupvars)
+        return "Current Patch"
+    elif content["eraID"] == patchidlist[0]:
+        return "Current Patch"
+    else:
+        print("Record for old patch, ignoring")
+        return None
+
+def construct_embed(title, url, groups, iconurl, fields):
+    log = discord.Embed(title=title, url=url)
+    if groups:
+        log.add_field(name="Group", value=groups, inline=False)
+    log.set_thumbnail(url=iconurl)
+    for name, value, inline in fields:
+        log.add_field(name=name, value=value, inline=inline)
+    return log
+
+def get_icon_url(content, bossid, bossdump):
+    iconurl = content["groupIcons"][0]
+    if iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png":
+        if bossid.startswith("-"):
+            bossid = bossid[1:]
+        iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]['icon']}"
+    return iconurl
 
 @bot.event
 async def patchtimerecord(content):
     await bot.wait_until_ready()
-    # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
     rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"),)
 
-    # Dont keep going if no channel wants the ping
     if not rows:
         print("Nobody wanted this ping")
         return
 
     bossname = bossname_from_id(content, bossid)
-
-    # Determine era. Reload patchlist if new patch detected
-    if content["eraID"] == "all":
-        era = "All Time"
-    elif content["eraID"] not in patchidlist:
-        importlib.reload(startupvars)
-        era = "Current Patch"
-    elif content["eraID"] == patchidlist[0]:
-        era = "Current Patch"
-    else:
-        print("Record for old patch, ignoring")
+    era = determine_era(content, patchidlist)
+    if era is None:
         return
-
-    # Construct message from POSTed content
 
     players = content["players_chars"]
     accts = content["players"]
     groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"] / 1000).strftime("%M:%S.%f")[:-3]
-    prevtime = dt.fromtimestamp(content["previousDuration"] / 1000).strftime(
-        "%M:%S.%f"
-    )[:-3]
+    prevtime = dt.fromtimestamp(content["previousDuration"] / 1000).strftime("%M:%S.%f")[:-3]
     loglink = content["link"]
 
-    log = discord.Embed(
-        title=f"New fastest log on {bossname}",
-        url=f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
+    iconurl = get_icon_url(content, bossid, bossdump)
+    emoji_list = [str(get(bot.emojis, name=spec)) for spec in content["players_professions"]]
+    playerscontent = "\n".join(f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts))
+
+    fields = [
+        ("Time", time, True),
+        ("Previous Time", prevtime, True),
+        ("Era", era, True),
+        ("Players", playerscontent, False)
+    ]
+    log = construct_embed(
+        f"New fastest log on {bossname}", 
+        f"https://gw2wingman.nevermindcreations.de/log/{loglink}", 
+        groups, 
+        iconurl, 
+        fields
     )
-    if groups:
-        log.add_field(name="Group", value=groups, inline=False)
-        iconurl = content["groupIcons"][0]
 
-        # If no group icon get boss icon
-        if (iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"):
-            if bossid.startswith("-"):
-                bossid = bossid[1:]
-            iconurl = (f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}")
-    else:
-        if bossid.startswith("-"):
-            bossid = bossid[1:]
-        iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}"
-    log.set_thumbnail(url=iconurl)
-    log.add_field(name="Time", value=time, inline=True)
-    log.add_field(name="Previous Time", value=prevtime, inline=True)
-    log.add_field(name="Era", value=era, inline=True)
+    send_records(rows, log)
 
-    emoji_list = []
-    for spec in content["players_professions"]:
-        emoji = get(bot.emojis, name=spec)
-        emoji_list.append(str(emoji))
-    playerscontent = [f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts)]
-    playerscontent = "\n".join(playerscontent)
-
-    log.add_field(name="Players", value=playerscontent)
-
-    # Distribute message
-
+def send_records(rows, log):
     for row in rows:
         channel = bot.get_channel(row[0])
         if channel is None:
@@ -655,18 +656,11 @@ async def patchtimerecord(content):
         except:
             print(f"Failed to write to channel: {str(channel.id)}")
 
-
 @bot.event
 async def patchdpsrecord(content, leaderboardtype="dps"):
     await bot.wait_until_ready()
-
-    # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-
-    rows = fetch_sql(
-            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-            (bossid, leaderboardtype),
-        )
+    rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, leaderboardtype),)
 
     # Dont keep going if no channel wants the ping
     if not rows:
@@ -674,17 +668,8 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
         return
 
     bossname = bossname_from_id(content, bossid)
-
-    # Determine era. Reload patchlist if new patch detected
-    if content["eraID"] == "all":
-        era = "All Time"
-    elif content["eraID"] not in patchidlist:
-        importlib.reload(startupvars)
-        era = "Current Patch"
-    elif content["eraID"] == patchidlist[0]:
-        era = "Current Patch"
-    else:
-        print("Record for old patch, ignoring")
+    era = determine_era(content, patchidlist)
+    if era is None:
         return
 
     charname = content["character"]
@@ -694,63 +679,22 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
     dpsstring = f"{str(dps)} (+{dpsdiff})"
     acctname = content["account"]
 
-    # idmap = discordIDfromAcctName([acctname])
-    # if idmap:
-    #    discordID = discordIDfromAcctName([acctname])[acctname][0]
-
-    # Construct message from POSTed content
     groups = ", ".join(content["group"])
     loglink = content["link"]
     titletext = {"dps": "DPS", "supportdps": "Support DPS"}
-    log = discord.Embed(
-            title=f"New {titletext[leaderboardtype]} record log on {bossname}",
-            url=f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
-        )
-    if groups:
-        log.add_field(name="Group", value=groups, inline=False)
-        iconurl = content["groupIcons"][0]
-
-        # If no group icon get boss icon
-        if (
-            iconurl
-            == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
-        ):
-            if bossid.startswith("-"):
-                bossid = bossid[1:]
-            iconurl = (
-                "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
-            )
-    else:
-        if bossid.startswith("-"):
-            bossid = bossid[1:]
-        iconurl = "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
-    log.set_thumbnail(url=iconurl)
-    if leaderboardtype == "dps":
-        log.add_field(name="DPS", value=dpsstring, inline=True)
-    elif leaderboardtype == "supportdps":
-        log.add_field(name="Support DPS", value=dpsstring, inline=True)
-    log.add_field(name="Era", value=era, inline=True)
+    iconurl = get_icon_url(content, bossid, bossdump)
 
     emoji = get(bot.emojis, name=profession)
     playercontent = f"{str(emoji)} {charname}/{acctname}"
 
-    log.add_field(name="Player", value=playercontent)
+    fields = [
+        (titletext[leaderboardtype], dpsstring, True),
+        ("Era", era, True),
+        ("Player", playercontent, False)
+    ]
+    log = construct_embed(f"New {titletext[leaderboardtype]} record log on {bossname}", f"https://gw2wingman.nevermindcreations.de/log/{loglink}", groups, iconurl, fields)
 
-    # Distribute message
-
-    for row in rows:
-        channel = bot.get_channel(row[0])
-        if channel is None:
-            continue
-        # If the user is in the guild, ping them.
-        # if channel.guild.get_member(discordID):
-        #    log.add_field(
-        #        name="Mention", value=bot.get_user(discordID).mention, inline=True
-        #    )
-        try:
-            bot.loop.create_task(channel.send(embed=log))
-        except:
-            print(f"Failed to write to channel: {str(channel.id)}")
+    send_records(rows, log)
 
 def bossname_from_id(content, bossid):
     #  Negative boss IDs are CMs
