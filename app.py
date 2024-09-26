@@ -6,7 +6,13 @@ from threading import Thread
 
 from quart import Quart, request
 
-from bot import cur, patchdpsrecord, patchtimerecord, pingreportedlog, run_discord_bot, internalmessage
+from bot import (
+    internalmessage,
+    patchdpsrecord,
+    patchtimerecord,
+    pingreportedlog,
+    run_discord_bot,
+)
 
 app = Quart(__name__)
 
@@ -26,39 +32,39 @@ async def hello():
 @app.route("/patchrecord/", methods=["POST"])
 async def patchrecord():
     content_type = request.headers.get("Content-Type")
-    if content_type == "application/json":
-        data = await request.get_json()
-
-        print(data)
-
-        if data["type"] == "time":
-            await patchtimerecord(data, cur)
-        elif data["type"] == "dps":
-            await patchdpsrecord(data, cur, leaderboardtype="dps")
-        elif data["type"] == "supportdps":
-            await patchdpsrecord(data, cur, leaderboardtype="supportdps")
-
-        return "Success"
-    else:
+    if content_type != "application/json":
         return "Content-Type not supported!"
+    data = await request.get_json()
+
+    print(data)
+
+    if data["type"] == "time":
+        await patchtimerecord(data)
+    elif data["type"] == "dps":
+        await patchdpsrecord(data, leaderboardtype="dps")
+    elif data["type"] == "supportdps":
+        await patchdpsrecord(data, leaderboardtype="supportdps")
+
+    return "Success"
+
 
 @app.route("/reportlog/", methods=["POST"])
 async def reportlog():
     content_type = request.headers.get("Content-Type")
-    if content_type == "application/json":
-        data = await request.get_json()
-        await pingreportedlog(data, cur)
-
-        return "Success"
-    else:
+    if content_type != "application/json":
         return "Content-Type not supported!"
+    data = await request.get_json()
+    await pingreportedlog(data)
+
+    return "Success"
+
 
 @app.route("/internalmessage/", methods=["POST"])
 async def internalmessaging():
     content_type = request.headers.get("Content-Type")
-    if content_type == "application/json":
-        data = await request.get_json()
-        await internalmessage(data, cur)
-        return "Success"
-    else:
+    if content_type != "application/json":
         return "Content-Type not supported!"
+
+    data = await request.get_json()
+    await internalmessage(data)
+    return "Success"

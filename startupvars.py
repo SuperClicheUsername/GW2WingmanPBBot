@@ -42,7 +42,7 @@ golem_ids = []
 bossidtoname = {}
 for key in bossdump.keys():
     if bossdump[key]["type"] == "fractal":
-        fractal_cm_boss_ids.append("-" + key)
+        fractal_cm_boss_ids.append(f"-{key}")
     elif bossdump[key]["type"] == "strike":
         strike_boss_ids.append(key)
     elif bossdump[key]["type"] == "raid":
@@ -53,11 +53,11 @@ for key in bossdump.keys():
 
 
 fractal_cm_boss_ids.remove("-232543")  # Remove full encounter ai
-raid_cm_boss_ids = ["-" + boss_id for boss_id in raid_boss_ids]
+raid_cm_boss_ids = [f"-{boss_id}" for boss_id in raid_boss_ids]
 # Remove wing 1 and 2 and xera as they dont have CMs
 raid_cm_boss_ids[6:].remove("-16246")
 strike_boss_ids.remove("21333")  # Remove freezie
-strike_cm_boss_ids = ["-" + boss_id for boss_id in strike_boss_ids][5:]
+strike_cm_boss_ids = [f"-{boss_id}" for boss_id in strike_boss_ids][5:]
 
 all_boss_ids = (
     fractal_cm_boss_ids
@@ -67,10 +67,33 @@ all_boss_ids = (
     + raid_cm_boss_ids
 )
 
+boss_content_lists = {
+    "raids": raid_boss_ids,
+    "raids cm": raid_cm_boss_ids,
+    "strikes": strike_boss_ids,
+    "strikes cm": strike_cm_boss_ids,
+    "fractals": fractal_cm_boss_ids,
+    "golem": golem_ids,
+    "all": all_boss_ids,
+}
+
 raid_id_set = set(raid_boss_ids + raid_cm_boss_ids)
 fractal_id_set = set(fractal_cm_boss_ids)
 strike_id_set = set(strike_boss_ids + strike_cm_boss_ids)
 all_id_set = set(all_boss_ids)
+
+boss_content_sets = {
+    "raids": raid_id_set,
+    "strikes": strike_id_set,
+    "fractals": fractal_id_set,
+    "all": all_id_set,
+}
+example_boss_ids = {
+    "raids": "19450",
+    "strikes": "22343",
+    "fractals": "-17759",
+    "golem": "16199",
+}
 
 
 def patchIDdump():
@@ -82,13 +105,9 @@ def patchIDdump():
     mostrecentpatchid = patchdump["patches"][0]["id"]
     mostrecentpatchstart = patchdump["patches"][0]["from"]
     mostrecentpatchstartdt = dt.strptime(
-        mostrecentpatchstart + " 12:30 -0000", "%Y-%m-%d %H:%M %z"
+        f"{mostrecentpatchstart} 12:30 -0000", "%Y-%m-%d %H:%M %z"
     )
-    patchidlist = []
-
-    for patch in patchdump["patches"]:
-        patchidlist.append(patch["id"])
-
+    patchidlist = [patch["id"] for patch in patchdump["patches"]]
     return (
         patchidlist,
         mostrecentpatchid,

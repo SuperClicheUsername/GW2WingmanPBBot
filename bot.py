@@ -30,10 +30,6 @@ bot = commands.Bot(command_prefix="?", description=description, intents=intents)
 dbfilename = "data/wingmanbot.db"
 if not exists(dbfilename):
     initializedb(dbfilename)
-global con
-con = sqlite3.connect(dbfilename)
-global cur
-cur = con.cursor()
 
 
 def savedata():
@@ -42,33 +38,45 @@ def savedata():
     return None
 
 
+def get_db_connection():
+    con = sqlite3.connect(dbfilename)
+    cur = con.cursor()
+    return con, cur
+
+
+def execute_sql(sql, params=()):
+    con, cur = get_db_connection()
+    cur.execute(sql, params)
+    con.commit()
+    con.close()
+
+
+def fetch_sql(sql, params=()):
+    con, cur = get_db_connection()
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
 def isapikeyvalid(key):
-    with urllib.request.urlopen(
-        "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
-            key
-        )
-    ) as url:
+    with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={key}") as url:
         playerstatdump = json.load(url)
-    if "error" in playerstatdump.keys():
-        return False
-    else:
-        return True
+    return "error" not in playerstatdump.keys()
 
 
 def logtimestampfromlink(link):
     format_data = "%Y%m%d-%H%M%S %z"
     # 1 dash is Wingman uploader link format
     if link.count("-") == 1:
-        timestamp = link[:15] + " -0500"
-    # 2 dashes is dps report link format
+        timestamp = f"{link[:15]} -0500"
     elif link.count("-") == 2:
-        timestamp = link[5:20] + " -0500"
-    timestamp = dt.strptime(timestamp, format_data)
-    return timestamp
+        timestamp = f"{link[5:20]} -0500"
+    return dt.strptime(timestamp, format_data)
 
 
 # Helper function ensures embed bodies are not more than 1024 characters each.
-def embed_wrap(bosslinks, stats):
+def embed_wrap(bosslinks, stats):  # sourcery skip: simplify-numeric-comparison
     bosslinkresult = []
     statresult = []
     bosslink_string = ""
@@ -99,7 +107,7 @@ def embed_wrap(bosslinks, stats):
 
 @bot.event
 async def on_ready():
-    global workingdata, con, cur, aleeva_token
+    global workingdata, aleeva_token
     with open("data/workingdata.pkl", "rb") as f:
         workingdata = pickle.load(f)
     await bot.tree.sync()
@@ -108,8 +116,6 @@ async def on_ready():
     if not exists(dbfilename):
         initializedb(dbfilename)
 
-    con = sqlite3.connect(dbfilename)
-    cur = con.cursor()
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
 
@@ -129,27 +135,25 @@ async def on_command_error(
 @bot.tree.command(description="Add a user to be tracked")
 @app_commands.describe(api_key="API Key used in Wingman")
 async def adduser(interaction: discord.Interaction, api_key: str):
-
-    if isapikeyvalid(api_key):
-        # Remove any old apikeys do ensure theres not multiple for some reason.
-        deletesql = f"""DELETE FROM users WHERE id = '{interaction.user.id}'"""
-        cur.execute(deletesql)
-        insertsql = """INSERT INTO users VALUES(?,?,?,?)"""
-        cur.execute(insertsql, (interaction.user.id, api_key, None, None))
-        con.commit()
-        # workingdata["user"][interaction.user.id] = {
-        #     "apikey": None,
-        #     "tracked_boss_ids": set(),
-        #     "lastchecked": None,
-        # }
-        # workingdata["user"][interaction.user.id]["apikey"] = api_key
-        await interaction.response.send_message("Saving API Key.", ephemeral=True)
-        # savedata()
-    else:
+    if not isapikeyvalid(api_key):
         await interaction.response.send_message(
             "Invalid API key. Make sure it is the same API key Wingman uses.",
             ephemeral=True,
         )
+        return
+    # Remove any old apikeys to ensure theres not multiple for some reason.
+    execute_sql(f"""DELETE FROM users WHERE id = '{interaction.user.id}'""")
+    insertsql = """INSERT INTO users VALUES(?,?,?,?)"""
+    execute_sql(insertsql, (interaction.user.id, api_key, None, None))
+    # workingdata["user"][interaction.user.id] = {
+    #     "apikey": None,
+    #     "tracked_boss_ids": set(),
+    #     "lastchecked": None,
+    # }
+    # workingdata["user"][interaction.user.id]["apikey"] = api_key
+    await interaction.response.send_message("Saving API Key.", ephemeral=True)
+    # savedata()
+        
 
 
 @bot.tree.command(description="Start tracking bosses")
@@ -167,30 +171,8 @@ async def track(
         )
         return
 
-    if content_type == "fractals":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(fractal_cm_boss_ids)
-    elif content_type == "raids":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(raid_boss_ids)
-    elif content_type == "raids cm":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(raid_cm_boss_ids)
-    elif content_type == "strikes":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(strike_boss_ids)
-    elif content_type == "strikes cm":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(strike_cm_boss_ids)
-    elif content_type == "golem":
-        workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-            "tracked_boss_ids"
-        ].union(golem_ids)
+    workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(boss_content_lists[content_type])
+
     await interaction.response.send_message(
         "Added bosses to track list. Next /check will not give PBs to reduce spam.",
         ephemeral=True,
@@ -203,7 +185,6 @@ async def track(
 @bot.tree.command(description="Manually check for new PBs")
 async def check(interaction: discord.Interaction):
     userid = interaction.user.id
-    responses = []
     if (
         workingdata["user"][userid]["apikey"] is not None
         and workingdata["user"][userid]["tracked_boss_ids"] != set()
@@ -226,34 +207,23 @@ async def check(interaction: discord.Interaction):
             savedata()
             return
 
-        with urllib.request.urlopen(
-            "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
-                APIKey
-            )
-        ) as url:
+        with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={APIKey}") as url:
             playerstatdump = json.load(url)
 
         # Look for new top dps log
         topstats = playerstatdump["topPerformances"][mostrecentpatchid]
         bossescleared = list(set(tracked_boss_ids).intersection(topstats.keys()))
+        responses = []
         for boss in bossescleared:
             # Remove negative from id if present so we can pull boss name from api
-            if boss.startswith("-"):
-                boss_id = boss[1:]
-            else:
-                boss_id = boss
+            boss_id = boss[1:] if boss.startswith("-") else boss
             specscleared = list(set(topstats[boss].keys()).intersection(professions))
             for spec in specscleared:
                 logtimestamp = logtimestampfromlink(topstats[boss][spec]["link"])
                 # Check if log timestamps are from after last check
                 if logtimestamp > workingdata["user"][userid]["lastchecked"]:
                     responses.append(
-                        "New best DPS log on {}!\nSpec: {}\nDPS: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(
-                            bossdump[boss_id]["name"],
-                            spec,
-                            topstats[boss][spec]["topDPS"],
-                            topstats[boss][spec]["link"],
-                        )
+                        f'New best DPS log on {bossdump[boss_id]["name"]}!\nSpec: {spec}\nDPS: {topstats[boss][spec]["topDPS"]}\nLink: https://gw2wingman.nevermindcreations.de/log/{topstats[boss][spec]["link"]}'
                     )
 
         # Look for new fastest log
@@ -261,22 +231,17 @@ async def check(interaction: discord.Interaction):
         bossescleared = list(set(tracked_boss_ids).intersection(toptimes.keys()))
         for boss in bossescleared:
             # Remove negative from id if present so we can pull boss name from api
-            if boss.startswith("-"):
-                boss_id = boss[1:]
-            else:
-                boss_id = boss
+            boss_id = boss[1:] if boss.startswith("-") else boss
             logtimestamp = logtimestampfromlink(toptimes[boss]["link"])
             if logtimestamp > workingdata["user"][userid]["lastchecked"]:
                 bosstime = dt.fromtimestamp(
                     toptimes[boss]["durationMS"] / 1000.0
                 ).strftime("%M:%S.%f")[:-3]
                 responses.append(
-                    "New fastest log on {}!\nTime: {}\nLink: https://gw2wingman.nevermindcreations.de/log/{}".format(
-                        bossdump[boss_id]["name"], bosstime, toptimes[boss]["link"]
-                    )
+                    f'New fastest log on {bossdump[boss_id]["name"]}!\nTime: {bosstime}\nLink: https://gw2wingman.nevermindcreations.de/log/{toptimes[boss]["link"]}'
                 )
 
-        if responses == []:
+        if not responses:
             await interaction.response.send_message("No new PBs")
         else:
             await interaction.response.defer()
@@ -306,35 +271,23 @@ async def addnewbossid(
     new_boss_id: str,
 ):
     # Example boss of each type we search to find channels with each type
-    if boss_type == "raids":
-        bossid = "19450"
-    elif boss_type == "strikes":
-        bossid = "22343"
-    elif boss_type == "fractals":
-        bossid = "-17759"
-    elif boss_type == "golem":
-        bossid = "16199"
+    bossid = example_boss_ids[boss_type]    
 
-    selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
-    insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-
-    cur.execute(selectsql)
-    rows = cur.fetchall()
+    rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
     dpschannelids = [item[0] for item in rows if item[1] == "dps"]
     timechannelids = [item[0] for item in rows if item[1] == "time"]
     supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
 
+    insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     for channel_id in dpschannelids:
-        cur.execute(insertsql, (channel_id, new_boss_id, "dps"))
+        execute_sql(insertsql, (channel_id, new_boss_id, "dps"))
     for channel_id in supportdpschannelids:
-        cur.execute(insertsql, (channel_id, new_boss_id, "supportdps"))
+        execute_sql(insertsql, (channel_id, new_boss_id, "supportdps"))
     for channel_id in timechannelids:
-        cur.execute(insertsql, (channel_id, new_boss_id, "time"))
-    con.commit()
+        execute_sql(insertsql, (channel_id, new_boss_id, "time"))
 
-    numservers = len(rows)
-    print("Added new boss id: " + str(new_boss_id) + " to bosstype: " + str(boss_type))
-    await interaction.response.send_message(f"Success! Added boss {numservers} times")
+    print(f"Added new boss id: {new_boss_id} to bosstype: {str(boss_type)}")
+    await interaction.response.send_message(f"Success! Added boss {len(rows)} times")
 
 
 @bot.tree.command(description="Add tracking for when game adds new boss")
@@ -346,45 +299,29 @@ async def removenewbossid(
     new_boss_id: str,
 ):
     # Example boss of each type we search to find channels with each type
-    if boss_type == "raids":
-        bossid = "19450"
-    elif boss_type == "strikes":
-        bossid = "22343"
-    elif boss_type == "fractals":
-        bossid = "-17759"
-    elif boss_type == "golem":
-        bossid = "16199"
+    bossid = example_boss_ids[boss_type]
 
-    selectsql = f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
-
-    cur.execute(selectsql)
-    rows = cur.fetchall()
+    rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
     dpschannelids = [item[0] for item in rows if item[1] == "dps"]
     timechannelids = [item[0] for item in rows if item[1] == "time"]
     supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
 
+    deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
     for channel_id in dpschannelids:
-        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-        cur.execute(deletesql, (channel_id, new_boss_id, "dps"))
+        execute_sql(deletesql, (channel_id, new_boss_id, "dps"))
     for channel_id in timechannelids:
-        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-        cur.execute(deletesql, (channel_id, new_boss_id, "time"))
+        execute_sql(deletesql, (channel_id, new_boss_id, "time"))
     for channel_id in supportdpschannelids:
-        deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-        cur.execute(deletesql, (channel_id, new_boss_id, "supportdps"))
-    con.commit()
+        execute_sql(deletesql, (channel_id, new_boss_id, "supportdps"))
 
-    numservers = len(rows)
-    print("Added new boss id: " + str(new_boss_id) + " to bosstype: " + str(boss_type))
-    await interaction.response.send_message(f"Success! Removed boss {numservers} times")
+    print(f"Added new boss id: {new_boss_id} to bosstype: {boss_type}")
+    await interaction.response.send_message(f"Success! Removed boss {len(rows)} times")
 
 
 @bot.tree.command(description="What the heck is going on")
 @commands.is_owner()
 async def debugchannels(interaction: discord.Interaction):
-    selectsql = """SELECT DISTINCT id, type FROM bossserverchannels"""
-    cur.execute(selectsql)
-    rows = cur.fetchall()
+    rows = fetch_sql("""SELECT DISTINCT id, type FROM bossserverchannels""")
     dpschannelids = [item[0] for item in rows if item[1] == "dps"]
     timechannelids = [item[0] for item in rows if item[1] == "time"]
     supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
@@ -406,10 +343,8 @@ async def debugchannels(interaction: discord.Interaction):
 @bot.tree.command(description="Remove channel_id from database")
 @commands.is_owner()
 async def prune_channel(interaction: discord.Interaction, channel_id: str):
-    print("Removing channel: " + channel_id)
-    deletesql = """DELETE FROM bossserverchannels WHERE id = ?"""
-    cur.execute(deletesql, (channel_id))
-    con.commit()
+    print(f"Removing channel: {channel_id}")
+    execute_sql("""DELETE FROM bossserverchannels WHERE id = ?""", (channel_id))
     await interaction.response.send_message("Success!")
 
 
@@ -418,7 +353,7 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     leaderboard="Which type of leaderboard you would like to show.",
     patch_id="Optional - Patch ID, by default will show the latest. Patch IDs are generally 'YY-MM'",
     content="Optional - The bosses you would like to show organized by content type. Defaults to all. Includes normal and CMs.",
-    spec="Optional - The specialization you want to show. Defaults to overall which includes all specs.",
+    spec="Optional - The specialization you want to show. Defaults to overall which includes all specs. Cannot be used with time leaderboard",
 )
 async def flex(
     interaction: discord.Interaction,
@@ -430,41 +365,23 @@ async def flex(
     await interaction.response.defer(thinking=True)
     # Check for apikey and retrieve data
     userid = interaction.user.id
-    selectsql = f"""SELECT DISTINCT apikey FROM users WHERE id = '{userid}'"""
-    cur.execute(selectsql)
-    rows = cur.fetchall()
-    if rows == []:
-        await interaction.followup.send(
-            "Error. You need to add your API key first. Do /adduser"
-        )
+    rows = fetch_sql(f"""SELECT DISTINCT apikey FROM users WHERE id = '{userid}'""")
+    if rows == [] or len(rows) > 1:
+        await interaction.followup.send("API-Key Error. Do /adduser with your API-key")
         return
-    if len(rows) > 1:
-        await interaction.followup.send(
-            "Error. More than one API key associated with discord user. How did you manage that?"
-        )
-        return
-
     apikey = rows[0][0]
     print("Found API key")
-    with urllib.request.urlopen(
-        "https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={}".format(
-            apikey
-        )
-    ) as url:
+
+    with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={apikey}") as url:
         playerstatdump = json.load(url)
 
     # Handle the command arguments
     if patch_id == "latest":
         patch_id = list(playerstatdump["topBossTimes"].keys())[-2]
+    
     bossescompleted = set(playerstatdump["topBossTimes"][patch_id].keys())
-    if content == "raids":
-        bossestocheck = raid_id_set
-    elif content == "fractals":
-        bossestocheck = fractal_id_set
-    elif content == "strikes":
-        bossestocheck = strike_id_set
-    elif content == "all":
-        bossestocheck = all_id_set
+    bossestocheck = boss_content_sets[content]
+
     # Intersection of bosses completed and bosses being checked
     boss_ids = bossescompleted & bossestocheck
     if len(boss_ids) < 1:
@@ -474,8 +391,8 @@ async def flex(
     # Create the embed
     accountname = playerstatdump["account"]
     embed = discord.Embed(
-        title="{}'s best {} logs".format(accountname, leaderboard),
-        description="For the {} patch in {} on {}".format(patch_id, content, spec),
+        title=f"{accountname}'s best {leaderboard} logs",
+        description=f"For the {patch_id} patch in {content} on {spec}",
     )
 
     bossnamelinks = []
@@ -484,14 +401,13 @@ async def flex(
     if leaderboard == "time":
         for id in boss_ids:
             if id.startswith("-"):
-                bossname = bossidtoname[id[1:]] + " CM"
+                bossname = f"{bossidtoname[id[1:]]} CM"
             else:
                 bossname = bossidtoname[id]
             link = (
-                "https://gw2wingman.nevermindcreations.de/log/"
-                + playerstatdump["topBossTimes"][patch_id][id]["link"]
+                f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topBossTimes"][patch_id][id]["link"]}"
             )
-            bossnamelinks.append("[{}]({})".format(bossname, link))
+            bossnamelinks.append(f"[{bossname}]({link})")
 
             duration = playerstatdump["topBossTimes"][patch_id][id]["durationMS"]
             stats.append(dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3])
@@ -504,14 +420,14 @@ async def flex(
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
                 if id.startswith("-"):
-                    bossname = bossidtoname[id[1:]] + " CM"
+                    bossname = f"{bossidtoname[id[1:]]} CM"
                 else:
                     bossname = bossidtoname[id]
                 link = (
                     "https://gw2wingman.nevermindcreations.de/log/"
                     + playerstatdump["topPerformances"][patch_id][id][spec]["link"]
                 )
-                bossnamelinks.append("[{}]({})".format(bossname, link))
+                bossnamelinks.append(f"[{bossname}]({link})")
 
                 dps = playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"]
                 stats.append(str(dps))
@@ -525,14 +441,11 @@ async def flex(
         for id in boss_ids:
             if spec in playerstatdump["topPerformances"][patch_id][id].keys():
                 if id.startswith("-"):
-                    bossname = bossidtoname[id[1:]] + " CM"
+                    bossname = f"{bossidtoname[id[1:]]} CM"
                 else:
                     bossname = bossidtoname[id]
                 link = (
-                    "https://gw2wingman.nevermindcreations.de/log/"
-                    + playerstatdump["topPerformancesSupport"][patch_id][id][spec][
-                        "link"
-                    ]
+                    f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topPerformancesSupport"][patch_id][id][spec]["link"]}"
                 )
                 dps = playerstatdump["topPerformancesSupport"][patch_id][id][spec][
                     "topDPS"
@@ -542,7 +455,7 @@ async def flex(
                     continue
 
                 allzeros = False
-                bossnamelinks.append("[{}]({})".format(bossname, link))
+                bossnamelinks.append(f"[{bossname}]({link})")
                 stats.append(str(dps))
 
         # Special case because if you haven't played support it shows as zero instead of not existing
@@ -586,43 +499,16 @@ async def channeltrackboss(
         "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
     ],
 ):
+    if content_type == "golem" and ping_type != "dps":
+        await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
+        return
+    
     await interaction.response.defer(thinking=True)
-    channel_id = interaction.channel_id
-    sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    if content_type == "fractals":
-        for boss_id in fractal_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "raids":
-        for boss_id in raid_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "raids cm":
-        for boss_id in raid_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "strikes":
-        for boss_id in strike_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "strikes cm":
-        for boss_id in strike_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "all":
-        for boss_id in all_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "golem":
-        if ping_type != "dps":
-            await interaction.followup.send(
-                "Only DPS ping type is supported for golems. Try again."
-            )
-            return
 
-        for boss_id in golem_ids:
-            cur.execute(sql, (channel_id, boss_id, "dps"))
-            con.commit()
+    sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
+    for boss_id in boss_content_lists[content_type]:
+        execute_sql(sql, (interaction.channel_id, boss_id, ping_type))
+    
     await interaction.followup.send(
         "Added bosses to track list. Will post in this channel when the next patch record is posted"
     )
@@ -643,42 +529,17 @@ async def channeluntrackboss(
     ],
 ):
     await interaction.response.defer(thinking=True)
-    channel_id = interaction.channel_id
+
     sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
-    if content_type == "fractals":
-        for boss_id in fractal_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "raids":
-        for boss_id in raid_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "raids cm":
-        for boss_id in raid_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "strikes":
-        for boss_id in strike_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "strikes cm":
-        for boss_id in strike_cm_boss_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "all":
-        for boss_id in all_boss_ids + golem_ids:
-            cur.execute(sql, (channel_id, boss_id, ping_type))
-            con.commit()
-    elif content_type == "golem":
-        for boss_id in golem_ids:
-            cur.execute(sql, (channel_id, boss_id, "dps"))
-            con.commit()
+    for boss_id in boss_content_lists[content_type]:
+        execute_sql(sql, (interaction.channel_id, boss_id, ping_type))
+
     await interaction.followup.send("Removed bosses from track list.")
     return
 
 
 @bot.event
-async def pingreportedlog(content, cur):
+async def pingreportedlog(content):
     await bot.wait_until_ready()
     loglink = content["link"]
     reasontext = content["reason"]
@@ -688,23 +549,23 @@ async def pingreportedlog(content, cur):
     reportedlogchannel = 852681966444740620
 
     log = discord.Embed(
-        title="Log reported on {}, reason: {}".format(bossname, reasontext),
-        url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
+        title=f"Log reported on {bossname}, reason: {reasontext}",
+        url=f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
     )
     if bossid.startswith("-"):
         bossid = bossid[1:]
-    iconurl = "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
+    iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}"
     log.set_thumbnail(url=iconurl)
     log.add_field(name="Time", value=time, inline=True)
     log.add_field(name="Link", value=loglink, inline=True)
 
     channel = bot.get_channel(reportedlogchannel)
     bot.loop.create_task(channel.send(embed=log))
-    print("Log reported {}, reason: {}".format(loglink, reasontext))
+    print(f"Log reported {loglink}, reason: {reasontext}")
 
 
 @bot.event
-async def internalmessage(content, cur):
+async def internalmessage(content):
     # Echos any message sent to the /internalmessage/ endpoint to the internal botspam channel
     await bot.wait_until_ready()
     message = content["message"]
@@ -712,35 +573,22 @@ async def internalmessage(content, cur):
 
     channel = bot.get_channel(internalmessagechannel)
     bot.loop.create_task(channel.send(content=message))
-    print("Internal message {}".format(message))
+    print(f"Internal message {message}")
 
 
 @bot.event
-async def patchtimerecord(content, cur):
+async def patchtimerecord(content):
     await bot.wait_until_ready()
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
-    cur.execute(
-        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-        (bossid, "time"),
-    )
-    rows = cur.fetchall()
+    rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"),)
 
     # Dont keep going if no channel wants the ping
     if not rows:
         print("Nobody wanted this ping")
         return
 
-    #  Negative boss IDs are CMs
-    if bossid.startswith("-"):
-        # Check for legendary key first because not all bosses will have it
-        if "isLegendaryCM" in content.keys():
-            if content["isLegendaryCM"]:
-                bossname = content["bossName"] + " LCM"
-        else:
-            bossname = content["bossName"] + " CM"
-    else:
-        bossname = content["bossName"]
+    bossname = bossname_from_id(content, bossid)
 
     # Determine era. Reload patchlist if new patch detected
     if content["eraID"] == "all":
@@ -766,30 +614,23 @@ async def patchtimerecord(content, cur):
     loglink = content["link"]
 
     log = discord.Embed(
-        title="New fastest log on {}".format(bossname),
-        url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
+        title=f"New fastest log on {bossname}",
+        url=f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
     )
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
         iconurl = content["groupIcons"][0]
 
         # If no group icon get boss icon
-        if (
-            iconurl
-            == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
-        ):
+        if (iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"):
             if bossid.startswith("-"):
                 bossid = bossid[1:]
-            iconurl = (
-                "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
-            )
-        log.set_thumbnail(url=iconurl)
+            iconurl = (f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}")
     else:
         if bossid.startswith("-"):
             bossid = bossid[1:]
-        iconurl = "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
-        log.set_thumbnail(url=iconurl)
-
+        iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}"
+    log.set_thumbnail(url=iconurl)
     log.add_field(name="Time", value=time, inline=True)
     log.add_field(name="Previous Time", value=prevtime, inline=True)
     log.add_field(name="Era", value=era, inline=True)
@@ -798,9 +639,7 @@ async def patchtimerecord(content, cur):
     for spec in content["players_professions"]:
         emoji = get(bot.emojis, name=spec)
         emoji_list.append(str(emoji))
-    playerscontent = [
-        m + " " + n + "/" + o for m, n, o in zip(emoji_list, players, accts)
-    ]
+    playerscontent = [f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts)]
     playerscontent = "\n".join(playerscontent)
 
     log.add_field(name="Players", value=playerscontent)
@@ -814,51 +653,27 @@ async def patchtimerecord(content, cur):
         try:
             bot.loop.create_task(channel.send(embed=log))
         except:
-            print("Failed to write to channel: " + str(channel.id))
+            print(f"Failed to write to channel: {str(channel.id)}")
 
 
 @bot.event
-async def patchdpsrecord(content, cur, leaderboardtype="dps"):
+async def patchdpsrecord(content, leaderboardtype="dps"):
     await bot.wait_until_ready()
 
     # TODO: check if acctname is in tracked list
     bossid = content["bossID"]
 
-    if leaderboardtype == "supportdps":
-        cur.execute(
+    rows = fetch_sql(
             "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-            (bossid, "supportdps"),
+            (bossid, leaderboardtype),
         )
-    elif leaderboardtype == "dps":
-        cur.execute(
-            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-            (bossid, "dps"),
-        )
-    else:
-        raise Exception("Invalid leaderboardtype")
-    rows = cur.fetchall()
 
     # Dont keep going if no channel wants the ping
     if not rows:
         print("Nobody wanted this ping")
         return
 
-    #  Negative boss IDs are CMs
-    if bossid.startswith("-"):
-        bossname = content["bossName"] + " CM"
-    else:
-        bossname = content["bossName"]
-
-    #  Negative boss IDs are CMs
-    if bossid.startswith("-"):
-        # Check for legendary key first because not all bosses will have it
-        if "isLegendaryCM" in content.keys():
-            if content["isLegendaryCM"]:
-                bossname = content["bossName"] + " LCM"
-        else:
-            bossname = content["bossName"] + " CM"
-    else:
-        bossname = content["bossName"]
+    bossname = bossname_from_id(content, bossid)
 
     # Determine era. Reload patchlist if new patch detected
     if content["eraID"] == "all":
@@ -876,7 +691,7 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     profession = content["profession"]
     dps = content["dps"]
     dpsdiff = dps - content["previousDps"]
-    dpsstring = str(dps) + " (+{})".format(dpsdiff)
+    dpsstring = f"{str(dps)} (+{dpsdiff})"
     acctname = content["account"]
 
     # idmap = discordIDfromAcctName([acctname])
@@ -886,16 +701,10 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     # Construct message from POSTed content
     groups = ", ".join(content["group"])
     loglink = content["link"]
-
-    if leaderboardtype == "dps":
-        log = discord.Embed(
-            title="New DPS record log on {}".format(bossname),
-            url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
-        )
-    elif leaderboardtype == "supportdps":
-        log = discord.Embed(
-            title="New Support DPS record log on {}".format(bossname),
-            url="https://gw2wingman.nevermindcreations.de/log/" + loglink,
+    titletext = {"dps": "DPS", "supportdps": "Support DPS"}
+    log = discord.Embed(
+            title=f"New {titletext[leaderboardtype]} record log on {bossname}",
+            url=f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
         )
     if groups:
         log.add_field(name="Group", value=groups, inline=False)
@@ -911,13 +720,11 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
             iconurl = (
                 "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
             )
-        log.set_thumbnail(url=iconurl)
     else:
         if bossid.startswith("-"):
             bossid = bossid[1:]
         iconurl = "https://gw2wingman.nevermindcreations.de" + bossdump[bossid]["icon"]
-        log.set_thumbnail(url=iconurl)
-
+    log.set_thumbnail(url=iconurl)
     if leaderboardtype == "dps":
         log.add_field(name="DPS", value=dpsstring, inline=True)
     elif leaderboardtype == "supportdps":
@@ -925,7 +732,7 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
     log.add_field(name="Era", value=era, inline=True)
 
     emoji = get(bot.emojis, name=profession)
-    playercontent = str(emoji) + " " + charname + "/" + acctname
+    playercontent = f"{str(emoji)} {charname}/{acctname}"
 
     log.add_field(name="Player", value=playercontent)
 
@@ -943,7 +750,20 @@ async def patchdpsrecord(content, cur, leaderboardtype="dps"):
         try:
             bot.loop.create_task(channel.send(embed=log))
         except:
-            print("Failed to write to channel: " + str(channel.id))
+            print(f"Failed to write to channel: {str(channel.id)}")
+
+def bossname_from_id(content, bossid):
+    #  Negative boss IDs are CMs
+    if bossid.startswith("-"):
+        # Check for legendary key first because not all bosses will have it
+        if "isLegendaryCM" in content.keys():
+            if content["isLegendaryCM"]:
+                bossname = content["bossName"] + " LCM"
+        else:
+            bossname = content["bossName"] + " CM"
+    else:
+        bossname = content["bossName"]
+    return bossname
 
 
 with open("data/discord_token.txt") as f:
