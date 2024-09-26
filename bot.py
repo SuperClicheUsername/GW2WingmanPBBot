@@ -348,6 +348,26 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     await interaction.response.send_message("Success!")
 
 
+
+def construct_bossnamelinks_and_stats(id, patch_id, playerstatdump, leaderboard, spec):
+    if id.startswith("-"):
+        bossname = f"{bossidtoname[id[1:]]} CM"
+    else:
+        bossname = bossidtoname[id]
+    
+    if leaderboard == "time":
+        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topBossTimes'][patch_id][id]['link']}"
+        stat = dt.fromtimestamp(playerstatdump["topBossTimes"][patch_id][id]["durationMS"] / 1000).strftime("%M:%S.%f")[:-3]
+    elif leaderboard == "dps":
+        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topPerformances'][patch_id][id][spec]['link']}"
+        stat = str(playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"])
+    elif leaderboard == "supportdps":
+        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topPerformancesSupport"][patch_id][id][spec]["link"]}"
+        stat = str(playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"])
+    
+    return f"[{bossname}]({link})", stat
+
+
 @bot.tree.command(description="Flex on your friends by sharing your best logs.")
 @app_commands.describe(
     leaderboard="Which type of leaderboard you would like to show.",
@@ -369,6 +389,9 @@ async def flex(
     if rows == [] or len(rows) > 1:
         await interaction.followup.send("API-Key Error. Do /adduser with your API-key")
         return
+    if spec != "overall" and leaderboard == "time":
+        await interaction.followup.send("Error. Currently do not support time leaderboard filtered by specialization. Try again without specifying the specialization.")
+        return
     apikey = rows[0][0]
     print("Found API key")
 
@@ -384,7 +407,7 @@ async def flex(
 
     # Intersection of bosses completed and bosses being checked
     boss_ids = bossescompleted & bossestocheck
-    if len(boss_ids) < 1:
+    if not boss_ids:
         await interaction.followup.send("Did not find any logs for your settings.")
         return
 
@@ -398,78 +421,24 @@ async def flex(
     bossnamelinks = []
     stats = []
     # Construct embed based on the data and arguments
-    if leaderboard == "time":
-        for id in boss_ids:
-            if id.startswith("-"):
-                bossname = f"{bossidtoname[id[1:]]} CM"
-            else:
-                bossname = bossidtoname[id]
-            link = (
-                f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topBossTimes"][patch_id][id]["link"]}"
-            )
-            bossnamelinks.append(f"[{bossname}]({link})")
-
-            duration = playerstatdump["topBossTimes"][patch_id][id]["durationMS"]
-            stats.append(dt.fromtimestamp(duration / 1000).strftime("%M:%S.%f")[:-3])
-        bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
-        for i, body in enumerate(bossnamebody):
-            embed.add_field(name="Boss", value=body, inline=True)
-            embed.add_field(name="Time", value=statbody[i], inline=True)
-            embed.add_field(name=" ", value=" ")
-    if leaderboard == "dps":
-        for id in boss_ids:
-            if spec in playerstatdump["topPerformances"][patch_id][id].keys():
-                if id.startswith("-"):
-                    bossname = f"{bossidtoname[id[1:]]} CM"
-                else:
-                    bossname = bossidtoname[id]
-                link = (
-                    "https://gw2wingman.nevermindcreations.de/log/"
-                    + playerstatdump["topPerformances"][patch_id][id][spec]["link"]
-                )
-                bossnamelinks.append(f"[{bossname}]({link})")
-
-                dps = playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"]
-                stats.append(str(dps))
-        bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
-        for i, body in enumerate(bossnamebody):
-            embed.add_field(name="Boss", value=body, inline=True)
-            embed.add_field(name="Time", value=statbody[i], inline=True)
-            embed.add_field(name=" ", value=" ")
-    if leaderboard == "support":
-        allzeros = True
-        for id in boss_ids:
-            if spec in playerstatdump["topPerformances"][patch_id][id].keys():
-                if id.startswith("-"):
-                    bossname = f"{bossidtoname[id[1:]]} CM"
-                else:
-                    bossname = bossidtoname[id]
-                link = (
-                    f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topPerformancesSupport"][patch_id][id][spec]["link"]}"
-                )
-                dps = playerstatdump["topPerformancesSupport"][patch_id][id][spec][
-                    "topDPS"
-                ]
-                # If they haven't played support on that boss/spec that patch skip boss
-                if dps == 0:
-                    continue
-
-                allzeros = False
-                bossnamelinks.append(f"[{bossname}]({link})")
-                stats.append(str(dps))
-
-        # Special case because if you haven't played support it shows as zero instead of not existing
-        if allzeros:
-            await interaction.response.send(
-                "Did not find any support logs for your settings."
-            )
-            return
-        else:
-            bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
-            for i, body in enumerate(bossnamebody):
-                embed.add_field(name="Boss", value=body, inline=True)
-                embed.add_field(name="Time", value=statbody[i], inline=True)
-                embed.add_field(name=" ", value=" ")
+    for id in boss_ids:
+        if leaderboard == "support" and playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"] == 0:
+            continue
+        if spec in playerstatdump["topPerformances"][patch_id][id]:
+            bossnamelink, stat = construct_bossnamelinks_and_stats(id, patch_id, playerstatdump, leaderboard, spec)
+            bossnamelinks.append(bossnamelink)
+            stats.append(stat)
+    
+    if leaderboard == "support" and not bossnamelinks:
+        await interaction.response.send("Did not find any support logs for your settings.")
+        return
+    
+    titletext = {"dps": "DPS", "support": "Support DPS", "time":"Time"}
+    bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
+    for i, body in enumerate(bossnamebody):
+        embed.add_field(name="Boss", value=body, inline=True)
+        embed.add_field(name=f"{titletext[leaderboard]}", value=statbody[i], inline=True)
+        embed.add_field(name=" ", value=" ")
     await interaction.followup.send(embed=embed)
 
 
