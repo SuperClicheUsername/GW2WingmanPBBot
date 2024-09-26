@@ -9,7 +9,8 @@ aleeva_token.txt
 # Stored data
 *.pkl
 *.db
-*.json
+data.json
+data/logs
 
 # Visual Studio
 .vscode

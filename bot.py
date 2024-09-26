@@ -1,5 +1,9 @@
+import atexit
 import importlib
 import json
+import logging.config
+import logging.handlers
+import pathlib
 import pickle
 import sqlite3
 import ssl
@@ -17,6 +21,8 @@ from discord.utils import get
 import startupvars
 from startupvars import *
 
+logger = logging.getLogger(__name__)
+
 ssl._create_default_https_context = ssl._create_unverified_context
 
 description = """A bot to pull personal best and leaderboard info from gw2wingman."""
@@ -30,6 +36,17 @@ bot = commands.Bot(command_prefix="?", description=description, intents=intents)
 dbfilename = "data/wingmanbot.db"
 if not exists(dbfilename):
     initializedb(dbfilename)
+
+def setup_logging():
+    config_file = pathlib.Path("logging_config.json")
+    with open(config_file) as f_in:
+        config = json.load(f_in)
+
+    logging.config.dictConfig(config)
+    queue_handler = logging.getHandlerByName("queue_handler")
+    if queue_handler is not None:
+        queue_handler.listener.start()
+        atexit.register(queue_handler.listener.stop)
 
 
 def savedata():
@@ -116,9 +133,10 @@ async def on_ready():
     if not exists(dbfilename):
         initializedb(dbfilename)
 
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print("------")
+    setup_logging()
 
+    logger.debug(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    logger.debug("------")
 
 @bot.tree.error
 async def on_command_error(
@@ -286,7 +304,7 @@ async def addnewbossid(
     for channel_id in timechannelids:
         execute_sql(insertsql, (channel_id, new_boss_id, "time"))
 
-    print(f"Added new boss id: {new_boss_id} to bosstype: {str(boss_type)}")
+    logger.info(f"Added new boss id: {new_boss_id} to bosstype: {str(boss_type)}")
     await interaction.response.send_message(f"Success! Added boss {len(rows)} times")
 
 
@@ -314,7 +332,7 @@ async def removenewbossid(
     for channel_id in supportdpschannelids:
         execute_sql(deletesql, (channel_id, new_boss_id, "supportdps"))
 
-    print(f"Added new boss id: {new_boss_id} to bosstype: {boss_type}")
+    logger.info(f"Removed boss id: {new_boss_id} to bosstype: {boss_type}")
     await interaction.response.send_message(f"Success! Removed boss {len(rows)} times")
 
 
@@ -329,13 +347,13 @@ async def debugchannels(interaction: discord.Interaction):
 
     for channel_id in channel_ids:
         channel = bot.get_channel(channel_id)
-        print(channel_id)
+        logger.debug(channel_id)
         try:
-            print(channel.guild.unavailable)
-            print(channel.guild.name)
-            print(channel.guild.owner.name)
+            logger.debug(channel.guild.unavailable)
+            logger.debug(channel.guild.name)
+            logger.debug(channel.guild.owner.name)
         except:
-            print("Guild info did not work")
+            logger.debug("Guild info did not work")
             continue
     await interaction.response.send_message("Results sent to log.")
 
@@ -343,7 +361,7 @@ async def debugchannels(interaction: discord.Interaction):
 @bot.tree.command(description="Remove channel_id from database")
 @commands.is_owner()
 async def prune_channel(interaction: discord.Interaction, channel_id: str):
-    print(f"Removing channel: {channel_id}")
+    logger.info(f"Removing channel: {channel_id}")
     execute_sql("""DELETE FROM bossserverchannels WHERE id = ?""", (channel_id))
     await interaction.response.send_message("Success!")
 
@@ -393,7 +411,7 @@ async def flex(
         await interaction.followup.send("Error. Currently do not support time leaderboard filtered by specialization. Try again without specifying the specialization.")
         return
     apikey = rows[0][0]
-    print("Found API key")
+    logger.debug("Found API key")
 
     with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={apikey}") as url:
         playerstatdump = json.load(url)
@@ -530,7 +548,7 @@ async def pingreportedlog(content):
 
     channel = bot.get_channel(reportedlogchannel)
     bot.loop.create_task(channel.send(embed=log))
-    print(f"Log reported {loglink}, reason: {reasontext}")
+    logger.debug(f"Log reported {loglink}, reason: {reasontext}")
 
 
 @bot.event
@@ -542,7 +560,7 @@ async def internalmessage(content):
 
     channel = bot.get_channel(internalmessagechannel)
     bot.loop.create_task(channel.send(content=message))
-    print(f"Internal message {message}")
+    logger.debug(f"Internal message {message}")
 
 def determine_era(content, patchidlist):
     if content["eraID"] == "all":
@@ -553,7 +571,7 @@ def determine_era(content, patchidlist):
     elif content["eraID"] == patchidlist[0]:
         return "Current Patch"
     else:
-        print("Record for old patch, ignoring")
+        logger.debug("Record for old patch, ignoring")
         return None
 
 def construct_embed(title, url, groups, iconurl, fields):
@@ -580,7 +598,7 @@ async def patchtimerecord(content):
     rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"),)
 
     if not rows:
-        print("Nobody wanted this ping")
+        logger.debug("Nobody wanted this ping")
         return
 
     bossname = bossname_from_id(content, bossid)
@@ -622,8 +640,8 @@ def send_records(rows, log):
             continue
         try:
             bot.loop.create_task(channel.send(embed=log))
-        except:
-            print(f"Failed to write to channel: {str(channel.id)}")
+        except Exception:
+            logger.error(f"Failed to write to channel: {str(channel.id)}")
 
 @bot.event
 async def patchdpsrecord(content, leaderboardtype="dps"):
@@ -633,7 +651,7 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
 
     # Dont keep going if no channel wants the ping
     if not rows:
-        print("Nobody wanted this ping")
+        logger.debug("Nobody wanted this ping")
         return
 
     bossname = bossname_from_id(content, bossid)

@@ -8,6 +8,7 @@ from quart import Quart, request
 
 from bot import (
     internalmessage,
+    logger,
     patchdpsrecord,
     patchtimerecord,
     pingreportedlog,
@@ -36,7 +37,7 @@ async def patchrecord():
         return "Content-Type not supported!"
     data = await request.get_json()
 
-    print(data)
+    logger.debug(data)
 
     if data["type"] == "time":
         await patchtimerecord(data)
