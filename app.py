@@ -40,11 +40,31 @@ async def patchrecord():
     logger.debug(data)
 
     if data["type"] == "time":
-        await patchtimerecord(data)
+        try:
+            await patchtimerecord(data)
+        except Exception as err:
+            logger.error("Patch time record did not ping.")
+            logger.error(data)
+            logger.error(err)
+            return "Fail"
+
     elif data["type"] == "dps":
-        await patchdpsrecord(data, leaderboardtype="dps")
+        try:
+            await patchdpsrecord(data, leaderboardtype="dps")
+        except Exception as err:
+            logger.error("Patch DPS record did not ping.")
+            logger.error(data)
+            logger.error(err)
+            return "Fail"
+
     elif data["type"] == "supportdps":
-        await patchdpsrecord(data, leaderboardtype="supportdps")
+        try:
+            await patchdpsrecord(data, leaderboardtype="supportdps")
+        except Exception as err:
+            logger.error("Patch Support DPS record did not ping.")
+            logger.error(data)
+            logger.error(err)
+            return "Fail"
 
     return "Success"
 
