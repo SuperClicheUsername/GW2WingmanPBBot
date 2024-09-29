@@ -292,17 +292,16 @@ async def addnewbossid(
     bossid = example_boss_ids[boss_type]    
 
     rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
-    dpschannelids = [item[0] for item in rows if item[1] == "dps"]
-    timechannelids = [item[0] for item in rows if item[1] == "time"]
-    supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
+    channel_ids = {
+        "dps": [item[0] for item in rows if item[1] == "dps"],
+        "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
+        "time": [item[0] for item in rows if item[1] == "time"]
+    }
 
     insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    for channel_id in dpschannelids:
-        execute_sql(insertsql, (channel_id, new_boss_id, "dps"))
-    for channel_id in supportdpschannelids:
-        execute_sql(insertsql, (channel_id, new_boss_id, "supportdps"))
-    for channel_id in timechannelids:
-        execute_sql(insertsql, (channel_id, new_boss_id, "time"))
+    for channel_type, ids in channel_ids.items():
+        for channel_id in ids:
+            execute_sql(insertsql, (channel_id, new_boss_id, channel_type))
 
     logger.info(f"Added new boss id: {new_boss_id} to bosstype: {str(boss_type)}")
     await interaction.response.send_message(f"Success! Added boss {len(rows)} times")
@@ -320,17 +319,16 @@ async def removenewbossid(
     bossid = example_boss_ids[boss_type]
 
     rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
-    dpschannelids = [item[0] for item in rows if item[1] == "dps"]
-    timechannelids = [item[0] for item in rows if item[1] == "time"]
-    supportdpschannelids = [item[0] for item in rows if item[1] == "supportdps"]
+    channel_ids = {
+        "dps": [item[0] for item in rows if item[1] == "dps"],
+        "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
+        "time": [item[0] for item in rows if item[1] == "time"]
+    }
 
     deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-    for channel_id in dpschannelids:
-        execute_sql(deletesql, (channel_id, new_boss_id, "dps"))
-    for channel_id in timechannelids:
-        execute_sql(deletesql, (channel_id, new_boss_id, "time"))
-    for channel_id in supportdpschannelids:
-        execute_sql(deletesql, (channel_id, new_boss_id, "supportdps"))
+    for channel_type, ids in channel_ids.items():
+        for channel_id in ids:
+            execute_sql(deletesql, (channel_id, new_boss_id, channel_type))
 
     logger.info(f"Removed boss id: {new_boss_id} to bosstype: {boss_type}")
     await interaction.response.send_message(f"Success! Removed boss {len(rows)} times")
@@ -348,12 +346,13 @@ async def debugchannels(interaction: discord.Interaction):
     for channel_id in channel_ids:
         channel = bot.get_channel(channel_id)
         logger.debug(channel_id)
-        try:
+        try :
             logger.debug(channel.guild.unavailable)
             logger.debug(channel.guild.name)
             logger.debug(channel.guild.owner.name)
-        except:
+        except Exception as err:
             logger.debug("Guild info did not work")
+            logger.error(err)
             continue
     await interaction.response.send_message("Results sent to log.")
 
@@ -411,7 +410,7 @@ async def flex(
         await interaction.followup.send("Error. Currently do not support time leaderboard filtered by specialization. Try again without specifying the specialization.")
         return
     apikey = rows[0][0]
-    logger.debug("Found API key")
+    logger.debug("Found API key {apikey}")
 
     with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={apikey}") as url:
         playerstatdump = json.load(url)
@@ -448,7 +447,7 @@ async def flex(
             stats.append(stat)
     
     if leaderboard == "support" and not bossnamelinks:
-        await interaction.response.send("Did not find any support logs for your settings.")
+        await interaction.followup.send("Did not find any support logs for your settings.")
         return
     
     titletext = {"dps": "DPS", "support": "Support DPS", "time":"Time"}
@@ -487,7 +486,7 @@ async def channeltrackboss(
     ],
 ):
     if content_type == "golem" and ping_type != "dps":
-        await interaction.followup.send("Only DPS ping type is supported for golems. Try again.")
+        await interaction.response.send_message("Only DPS ping type is supported for golems. Try again.")
         return
     
     await interaction.response.defer(thinking=True)
@@ -547,7 +546,11 @@ async def pingreportedlog(content):
     log.add_field(name="Link", value=loglink, inline=True)
 
     channel = bot.get_channel(reportedlogchannel)
-    bot.loop.create_task(channel.send(embed=log))
+    try:
+        bot.loop.create_task(channel.send(embed=log))
+    except Exception as err:
+        logger.error("Reported long could not be pinged")
+        logger.error(err)
     logger.debug(f"Log reported {loglink}, reason: {reasontext}")
 
 
@@ -559,7 +562,12 @@ async def internalmessage(content):
     internalmessagechannel = 1208602365972717628
 
     channel = bot.get_channel(internalmessagechannel)
-    bot.loop.create_task(channel.send(content=message))
+    try:
+        bot.loop.create_task(channel.send(content=message))
+    except Exception as err:
+        logger.error("Internal message could not be sent")
+        logger.error(err)
+    
     logger.debug(f"Internal message {message}")
 
 def determine_era(content, patchidlist):
@@ -640,8 +648,9 @@ def send_records(rows, log):
             continue
         try:
             bot.loop.create_task(channel.send(embed=log))
-        except Exception:
+        except Exception as err:
             logger.error(f"Failed to write to channel: {str(channel.id)}")
+            logger.error(err)
 
 @bot.event
 async def patchdpsrecord(content, leaderboardtype="dps"):
