@@ -37,6 +37,7 @@ dbfilename = "data/wingmanbot.db"
 if not exists(dbfilename):
     initializedb(dbfilename)
 
+
 def setup_logging():
     config_file = pathlib.Path("logging_config.json")
     with open(config_file) as f_in:
@@ -77,7 +78,9 @@ def fetch_sql(sql, params=()):
 
 
 def isapikeyvalid(key):
-    with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={key}") as url:
+    with urllib.request.urlopen(
+        f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={key}"
+    ) as url:
         playerstatdump = json.load(url)
     return "error" not in playerstatdump.keys()
 
@@ -138,6 +141,7 @@ async def on_ready():
     logger.debug(f"Logged in as {bot.user} (ID: {bot.user.id})")
     logger.debug("------")
 
+
 @bot.tree.error
 async def on_command_error(
     interaction: discord.Interaction, error: discord.app_commands.AppCommandError
@@ -171,7 +175,6 @@ async def adduser(interaction: discord.Interaction, api_key: str):
     # workingdata["user"][interaction.user.id]["apikey"] = api_key
     await interaction.response.send_message("Saving API Key.", ephemeral=True)
     # savedata()
-        
 
 
 @bot.tree.command(description="Start tracking bosses")
@@ -189,7 +192,9 @@ async def track(
         )
         return
 
-    workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(boss_content_lists[content_type])
+    workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
+        "tracked_boss_ids"
+    ].union(boss_content_lists[content_type])
 
     await interaction.response.send_message(
         "Added bosses to track list. Next /check will not give PBs to reduce spam.",
@@ -225,7 +230,9 @@ async def check(interaction: discord.Interaction):
             savedata()
             return
 
-        with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={APIKey}") as url:
+        with urllib.request.urlopen(
+            f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={APIKey}"
+        ) as url:
             playerstatdump = json.load(url)
 
         # Look for new top dps log
@@ -289,13 +296,15 @@ async def addnewbossid(
     new_boss_id: str,
 ):
     # Example boss of each type we search to find channels with each type
-    bossid = example_boss_ids[boss_type]    
+    bossid = example_boss_ids[boss_type]
 
-    rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
+    rows = fetch_sql(
+        f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+    )
     channel_ids = {
         "dps": [item[0] for item in rows if item[1] == "dps"],
         "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
-        "time": [item[0] for item in rows if item[1] == "time"]
+        "time": [item[0] for item in rows if item[1] == "time"],
     }
 
     insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
@@ -318,14 +327,18 @@ async def removenewbossid(
     # Example boss of each type we search to find channels with each type
     bossid = example_boss_ids[boss_type]
 
-    rows = fetch_sql(f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'""")
+    rows = fetch_sql(
+        f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+    )
     channel_ids = {
         "dps": [item[0] for item in rows if item[1] == "dps"],
         "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
-        "time": [item[0] for item in rows if item[1] == "time"]
+        "time": [item[0] for item in rows if item[1] == "time"],
     }
 
-    deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
+    deletesql = (
+        """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
+    )
     for channel_type, ids in channel_ids.items():
         for channel_id in ids:
             execute_sql(deletesql, (channel_id, new_boss_id, channel_type))
@@ -346,7 +359,7 @@ async def debugchannels(interaction: discord.Interaction):
     for channel_id in channel_ids:
         channel = bot.get_channel(channel_id)
         logger.debug(channel_id)
-        try :
+        try:
             logger.debug(channel.guild.unavailable)
             logger.debug(channel.guild.name)
             logger.debug(channel.guild.owner.name)
@@ -365,23 +378,26 @@ async def prune_channel(interaction: discord.Interaction, channel_id: str):
     await interaction.response.send_message("Success!")
 
 
-
 def construct_bossnamelinks_and_stats(id, patch_id, playerstatdump, leaderboard, spec):
     if id.startswith("-"):
         bossname = f"{bossidtoname[id[1:]]} CM"
     else:
         bossname = bossidtoname[id]
-    
+
     if leaderboard == "time":
         link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topBossTimes'][patch_id][id]['link']}"
-        stat = dt.fromtimestamp(playerstatdump["topBossTimes"][patch_id][id]["durationMS"] / 1000).strftime("%M:%S.%f")[:-3]
+        stat = dt.fromtimestamp(
+            playerstatdump["topBossTimes"][patch_id][id]["durationMS"] / 1000
+        ).strftime("%M:%S.%f")[:-3]
     elif leaderboard == "dps":
         link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topPerformances'][patch_id][id][spec]['link']}"
         stat = str(playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"])
     elif leaderboard == "supportdps":
         link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topPerformancesSupport"][patch_id][id][spec]["link"]}"
-        stat = str(playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"])
-    
+        stat = str(
+            playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"]
+        )
+
     return f"[{bossname}]({link})", stat
 
 
@@ -407,18 +423,22 @@ async def flex(
         await interaction.followup.send("API-Key Error. Do /adduser with your API-key")
         return
     if spec != "overall" and leaderboard == "time":
-        await interaction.followup.send("Error. Currently do not support time leaderboard filtered by specialization. Try again without specifying the specialization.")
+        await interaction.followup.send(
+            "Error. Currently do not support time leaderboard filtered by specialization. Try again without specifying the specialization."
+        )
         return
     apikey = rows[0][0]
     logger.debug("Found API key {apikey}")
 
-    with urllib.request.urlopen(f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={apikey}") as url:
+    with urllib.request.urlopen(
+        f"https://gw2wingman.nevermindcreations.de/api/getPlayerStats?apikey={apikey}"
+    ) as url:
         playerstatdump = json.load(url)
 
     # Handle the command arguments
     if patch_id == "latest":
         patch_id = list(playerstatdump["topBossTimes"].keys())[-2]
-    
+
     bossescompleted = set(playerstatdump["topBossTimes"][patch_id].keys())
     bossestocheck = boss_content_sets[content]
 
@@ -439,22 +459,32 @@ async def flex(
     stats = []
     # Construct embed based on the data and arguments
     for id in boss_ids:
-        if leaderboard == "support" and playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"] == 0:
+        if (
+            leaderboard == "support"
+            and playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"]
+            == 0
+        ):
             continue
         if spec in playerstatdump["topPerformances"][patch_id][id]:
-            bossnamelink, stat = construct_bossnamelinks_and_stats(id, patch_id, playerstatdump, leaderboard, spec)
+            bossnamelink, stat = construct_bossnamelinks_and_stats(
+                id, patch_id, playerstatdump, leaderboard, spec
+            )
             bossnamelinks.append(bossnamelink)
             stats.append(stat)
-    
+
     if leaderboard == "support" and not bossnamelinks:
-        await interaction.followup.send("Did not find any support logs for your settings.")
+        await interaction.followup.send(
+            "Did not find any support logs for your settings."
+        )
         return
-    
-    titletext = {"dps": "DPS", "support": "Support DPS", "time":"Time"}
+
+    titletext = {"dps": "DPS", "support": "Support DPS", "time": "Time"}
     bossnamebody, statbody = embed_wrap(bossnamelinks, stats)
     for i, body in enumerate(bossnamebody):
         embed.add_field(name="Boss", value=body, inline=True)
-        embed.add_field(name=f"{titletext[leaderboard]}", value=statbody[i], inline=True)
+        embed.add_field(
+            name=f"{titletext[leaderboard]}", value=statbody[i], inline=True
+        )
         embed.add_field(name=" ", value=" ")
     await interaction.followup.send(embed=embed)
 
@@ -486,15 +516,17 @@ async def channeltrackboss(
     ],
 ):
     if content_type == "golem" and ping_type != "dps":
-        await interaction.response.send_message("Only DPS ping type is supported for golems. Try again.")
+        await interaction.response.send_message(
+            "Only DPS ping type is supported for golems. Try again."
+        )
         return
-    
+
     await interaction.response.defer(thinking=True)
 
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
     for boss_id in boss_content_lists[content_type]:
         execute_sql(sql, (interaction.channel_id, boss_id, ping_type))
-    
+
     await interaction.followup.send(
         "Added bosses to track list. Will post in this channel when the next patch record is posted"
     )
@@ -567,8 +599,9 @@ async def internalmessage(content):
     except Exception as err:
         logger.error("Internal message could not be sent")
         logger.error(err)
-    
+
     logger.debug(f"Internal message {message}")
+
 
 def determine_era(content, patchidlist):
     if content["eraID"] == "all":
@@ -582,6 +615,7 @@ def determine_era(content, patchidlist):
         logger.debug("Record for old patch, ignoring")
         return None
 
+
 def construct_embed(title, url, groups, iconurl, fields):
     log = discord.Embed(title=title, url=url)
     if groups:
@@ -591,19 +625,27 @@ def construct_embed(title, url, groups, iconurl, fields):
         log.add_field(name=name, value=value, inline=inline)
     return log
 
+
 def get_icon_url(content, bossid, bossdump):
     iconurl = content["groupIcons"][0]
-    if iconurl == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png":
+    if (
+        iconurl
+        == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
+    ):
         if bossid.startswith("-"):
             bossid = bossid[1:]
         iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]['icon']}"
     return iconurl
 
+
 @bot.event
 async def patchtimerecord(content):
     await bot.wait_until_ready()
     bossid = content["bossID"]
-    rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, "time"),)
+    rows = fetch_sql(
+        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+        (bossid, "time"),
+    )
 
     if not rows:
         logger.debug("Nobody wanted this ping")
@@ -618,28 +660,46 @@ async def patchtimerecord(content):
     accts = content["players"]
     groups = ", ".join(content["group"])
     time = dt.fromtimestamp(content["duration"] / 1000).strftime("%M:%S.%f")[:-3]
-    prevtime = dt.fromtimestamp(content["previousDuration"] / 1000).strftime("%M:%S.%f")[:-3]
+    prevtime = dt.fromtimestamp(content["previousDuration"] / 1000).strftime(
+        "%M:%S.%f"
+    )[:-3]
     loglink = content["link"]
+    isLowman = bool(content["isLowman"])
+    prevPlayerCount = content["previousPlayerAmount"]
 
     iconurl = get_icon_url(content, bossid, bossdump)
-    emoji_list = [str(get(bot.emojis, name=spec)) for spec in content["players_professions"]]
-    playerscontent = "\n".join(f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts))
+    emoji_list = [
+        str(get(bot.emojis, name=spec)) for spec in content["players_professions"]
+    ]
+    playerscontent = "\n".join(
+        f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts)
+    )
 
     fields = [
         ("Time", time, True),
         ("Previous Time", prevtime, True),
         ("Era", era, True),
-        ("Players", playerscontent, False)
+        ("Players", playerscontent, False),
     ]
+    title = f"New fastest log on {bossname}"
+    if isLowman:
+        fields = [
+            ("Time", time, True),
+            ("Previous Time", prevtime, True),
+            ("Previous Player Count", prevPlayerCount, True)("Era", era, True),
+            ("Players", playerscontent, False),
+        ]
+        title = f"New best lowman log on {bossname}"
     log = construct_embed(
-        f"New fastest log on {bossname}", 
-        f"https://gw2wingman.nevermindcreations.de/log/{loglink}", 
-        groups, 
-        iconurl, 
-        fields
+        title,
+        f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
+        groups,
+        iconurl,
+        fields,
     )
 
     send_records(rows, log)
+
 
 def send_records(rows, log):
     for row in rows:
@@ -652,11 +712,15 @@ def send_records(rows, log):
             logger.error(f"Failed to write to channel: {str(channel.id)}")
             logger.error(err)
 
+
 @bot.event
 async def patchdpsrecord(content, leaderboardtype="dps"):
     await bot.wait_until_ready()
     bossid = content["bossID"]
-    rows = fetch_sql("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?", (bossid, leaderboardtype),)
+    rows = fetch_sql(
+        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+        (bossid, leaderboardtype),
+    )
 
     # Dont keep going if no channel wants the ping
     if not rows:
@@ -686,11 +750,18 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
     fields = [
         (titletext[leaderboardtype], dpsstring, True),
         ("Era", era, True),
-        ("Player", playercontent, False)
+        ("Player", playercontent, False),
     ]
-    log = construct_embed(f"New {titletext[leaderboardtype]} record log on {bossname}", f"https://gw2wingman.nevermindcreations.de/log/{loglink}", groups, iconurl, fields)
+    log = construct_embed(
+        f"New {titletext[leaderboardtype]} record log on {bossname}",
+        f"https://gw2wingman.nevermindcreations.de/log/{loglink}",
+        groups,
+        iconurl,
+        fields,
+    )
 
     send_records(rows, log)
+
 
 def bossname_from_id(content, bossid):
     #  Negative boss IDs are CMs
