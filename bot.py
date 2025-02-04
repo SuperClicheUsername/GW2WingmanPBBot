@@ -109,13 +109,12 @@ def embed_wrap(bosslinks, stats):  # sourcery skip: simplify-numeric-comparison
             statresult.append(stat_string)
             bosslink_string = s  # Start a new string
             stat_string = stats[i]
+        elif bosslink_string:
+            bosslink_string += "\n" + s
+            stat_string += "\n" + stats[i]
         else:
-            if bosslink_string:
-                bosslink_string += "\n" + s
-                stat_string += "\n" + stats[i]
-            else:
-                bosslink_string = s
-                stat_string = stats[i]
+            bosslink_string = s
+            stat_string = stats[i]
 
     # Add the last string if it's not empty
     if bosslink_string:
@@ -393,7 +392,7 @@ def construct_bossnamelinks_and_stats(id, patch_id, playerstatdump, leaderboard,
         link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topPerformances'][patch_id][id][spec]['link']}"
         stat = str(playerstatdump["topPerformances"][patch_id][id][spec]["topDPS"])
     elif leaderboard == "supportdps":
-        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump["topPerformancesSupport"][patch_id][id][spec]["link"]}"
+        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topPerformancesSupport'][patch_id][id][spec]['link']}"
         stat = str(
             playerstatdump["topPerformancesSupport"][patch_id][id][spec]["topDPS"]
         )
