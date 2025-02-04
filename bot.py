@@ -571,7 +571,7 @@ async def pingreportedlog(content):
     )
     if bossid.startswith("-"):
         bossid = bossid[1:]
-    iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]["icon"]}"
+    iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]['icon']}"
     log.set_thumbnail(url=iconurl)
     log.add_field(name="Time", value=time, inline=True)
     log.add_field(name="Link", value=loglink, inline=True)
