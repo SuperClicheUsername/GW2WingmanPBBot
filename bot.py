@@ -685,7 +685,8 @@ async def patchtimerecord(content):
         fields = [
             ("Time", time, True),
             ("Previous Time", prevtime, True),
-            ("Previous Player Count", prevPlayerCount, True)("Era", era, True),
+            ("Previous Player Count", prevPlayerCount, True),
+            ("Era", era, True),
             ("Players", playerscontent, False),
         ]
         title = f"New best lowman log on {bossname}"
