@@ -715,7 +715,7 @@ async def send_records(rows, log):
 
         tasks.append(bot.loop.create_task(channel.send(embed=log)))
     try:
-        await bot.loop.gather(*tasks)
+        await asyncio.get_event_loop().gather(*tasks)
     except:
         logger.exception(f"Failed to write to channel")
         # : {str(channel.id)}
