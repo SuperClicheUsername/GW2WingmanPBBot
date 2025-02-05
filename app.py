@@ -45,7 +45,7 @@ async def patchrecord():
         except Exception as err:
             logger.error("Patch time record did not ping.")
             logger.error(data)
-            logger.error(err)
+            logger.error(err.with_traceback)
             return "Fail"
 
     elif data["type"] == "dps":
@@ -54,7 +54,7 @@ async def patchrecord():
         except Exception as err:
             logger.error("Patch DPS record did not ping.")
             logger.error(data)
-            logger.error(err)
+            logger.error(err.with_traceback)
             return "Fail"
 
     elif data["type"] == "supportdps":
@@ -63,7 +63,7 @@ async def patchrecord():
         except Exception as err:
             logger.error("Patch Support DPS record did not ping.")
             logger.error(data)
-            logger.error(err)
+            logger.error(err.with_traceback)
             return "Fail"
 
     return "Success"
