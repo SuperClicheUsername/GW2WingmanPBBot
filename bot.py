@@ -703,7 +703,7 @@ async def patchtimerecord(content):
         fields,
     )
 
-    send_records(rows, log)
+    await send_records(rows, log)
 
 
 async def send_records(rows, log):
@@ -768,7 +768,7 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
         fields,
     )
 
-    send_records(rows, log)
+    await send_records(rows, log)
 
 
 def bossname_from_id(content, bossid):
