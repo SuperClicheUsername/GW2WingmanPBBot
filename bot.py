@@ -1,3 +1,4 @@
+import asyncio
 import atexit
 import importlib
 import json
@@ -705,15 +706,19 @@ async def patchtimerecord(content):
     send_records(rows, log)
 
 
-def send_records(rows, log):
+async def send_records(rows, log):
+    tasks = []
     for row in rows:
         channel = bot.get_channel(row[0])
         if channel is None:
             continue
-        try:
-            bot.loop.create_task(channel.send(embed=log))
-        except:
-            logger.exception(f"Failed to write to channel: {str(channel.id)}")
+
+        tasks.append(bot.loop.create_task(channel.send(embed=log)))
+    try:
+        await asyncio.gather(*tasks)
+    except:
+        logger.exception(f"Failed to write to channel")
+        # : {str(channel.id)}
 
 
 @bot.event
