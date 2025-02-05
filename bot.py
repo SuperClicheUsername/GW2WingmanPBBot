@@ -363,9 +363,8 @@ async def debugchannels(interaction: discord.Interaction):
             logger.debug(channel.guild.unavailable)
             logger.debug(channel.guild.name)
             logger.debug(channel.guild.owner.name)
-        except Exception as err:
-            logger.debug("Guild info did not work")
-            logger.error(err)
+        except:
+            logger.exception("Guild info did not work")
             continue
     await interaction.response.send_message("Results sent to log.")
 
@@ -580,9 +579,8 @@ async def pingreportedlog(content):
     channel = bot.get_channel(reportedlogchannel)
     try:
         bot.loop.create_task(channel.send(embed=log))
-    except Exception as err:
-        logger.error("Reported long could not be pinged")
-        logger.error(err)
+    except:
+        logger.exception("Reported long could not be pinged")
     logger.debug(f"Log reported {loglink}, reason: {reasontext}")
 
 
@@ -596,9 +594,8 @@ async def internalmessage(content):
     channel = bot.get_channel(internalmessagechannel)
     try:
         bot.loop.create_task(channel.send(content=message))
-    except Exception as err:
-        logger.error("Internal message could not be sent")
-        logger.error(err)
+    except:
+        logger.exception("Internal message could not be sent")
 
     logger.debug(f"Internal message {message}")
 
@@ -715,9 +712,8 @@ def send_records(rows, log):
             continue
         try:
             bot.loop.create_task(channel.send(embed=log))
-        except Exception as err:
-            logger.error(f"Failed to write to channel: {str(channel.id)}")
-            logger.error(err)
+        except:
+            logger.exception(f"Failed to write to channel: {str(channel.id)}")
 
 
 @bot.event
