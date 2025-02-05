@@ -581,7 +581,7 @@ async def pingreportedlog(content):
     try:
         bot.loop.create_task(channel.send(embed=log))
     except:
-        logger.exception("Reported long could not be pinged")
+        logger.exception("Reported log could not be pinged")
     logger.debug(f"Log reported {loglink}, reason: {reasontext}")
 
 
