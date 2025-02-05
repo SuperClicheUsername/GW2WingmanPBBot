@@ -626,8 +626,9 @@ def construct_embed(title, url, groups, iconurl, fields):
     return log
 
 
-def get_icon_url(content, bossid, bossdump):
-    iconurl = content["groupIcons"][0]
+def get_icon_url(content, groups, bossid, bossdump):
+    if groups:
+        iconurl = content["groupIcons"][0]
     if (
         iconurl
         == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
@@ -667,7 +668,7 @@ async def patchtimerecord(content):
     isLowman = bool(content["isLowman"])
     prevPlayerCount = content["previousPlayerAmount"]
 
-    iconurl = get_icon_url(content, bossid, bossdump)
+    iconurl = get_icon_url(content, groups, bossid, bossdump)
     emoji_list = [
         str(get(bot.emojis, name=spec)) for spec in content["players_professions"]
     ]
@@ -743,7 +744,7 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
     groups = ", ".join(content["group"])
     loglink = content["link"]
     titletext = {"dps": "DPS", "supportdps": "Support DPS"}
-    iconurl = get_icon_url(content, bossid, bossdump)
+    iconurl = get_icon_url(content, groups, bossid, bossdump)
 
     emoji = get(bot.emojis, name=profession)
     playercontent = f"{str(emoji)} {charname}/{acctname}"
