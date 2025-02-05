@@ -703,10 +703,10 @@ async def patchtimerecord(content):
         fields,
     )
 
-    await send_records(rows, log)
+    send_records(rows, log)
 
 
-async def send_records(rows, log):
+def send_records(rows, log):
     tasks = []
     for row in rows:
         channel = bot.get_channel(row[0])
@@ -715,7 +715,8 @@ async def send_records(rows, log):
 
         tasks.append(bot.loop.create_task(channel.send(embed=log)))
     try:
-        await asyncio.get_event_loop().gather(*tasks)
+        eventloop = asyncio.get_event_loop()
+        eventloop.run_until_complete(asyncio.gather(*tasks))
     except:
         logger.exception(f"Failed to write to channel")
         # : {str(channel.id)}
@@ -768,7 +769,7 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
         fields,
     )
 
-    await send_records(rows, log)
+    send_records(rows, log)
 
 
 def bossname_from_id(content, bossid):
