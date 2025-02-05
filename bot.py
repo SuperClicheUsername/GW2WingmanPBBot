@@ -627,15 +627,20 @@ def construct_embed(title, url, groups, iconurl, fields):
 
 
 def get_icon_url(content, groups, bossid, bossdump):
+    # Get the default boss icon
+    if bossid.startswith("-"):
+        bossid = bossid[1:]
+    iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]['icon']}"
+
+    # If in a group and group has icon use that instead
     if groups:
-        iconurl = content["groupIcons"][0]
-    if (
-        iconurl
-        == "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
-    ):
-        if bossid.startswith("-"):
-            bossid = bossid[1:]
-        iconurl = f"https://gw2wingman.nevermindcreations.de{bossdump[bossid]['icon']}"
+        groupicon = content["groupIcons"][0]
+        if (
+            groupicon
+            != "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
+        ):
+            iconurl = groupicon
+
     return iconurl
 
 
