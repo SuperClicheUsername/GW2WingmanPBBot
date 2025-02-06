@@ -668,7 +668,8 @@ async def patchtimerecord(content):
         "%M:%S.%f"
     )[:-3]
     loglink = content["link"]
-    isLowman = bool(content["isLowman"])
+    if "isLowman" in content.keys():
+        isLowman = bool(content["isLowman"])
     prevPlayerCount = content["previousPlayerAmount"]
 
     iconurl = get_icon_url(content, groups, bossid, bossdump)
