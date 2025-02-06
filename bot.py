@@ -668,6 +668,7 @@ async def patchtimerecord(content):
         "%M:%S.%f"
     )[:-3]
     loglink = content["link"]
+    isLowman = False
     if "isLowman" in content.keys():
         isLowman = bool(content["isLowman"])
         prevPlayerCount = content["previousPlayerAmount"]
