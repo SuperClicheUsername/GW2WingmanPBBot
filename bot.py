@@ -670,7 +670,7 @@ async def patchtimerecord(content):
     loglink = content["link"]
     if "isLowman" in content.keys():
         isLowman = bool(content["isLowman"])
-    prevPlayerCount = content["previousPlayerAmount"]
+        prevPlayerCount = content["previousPlayerAmount"]
 
     iconurl = get_icon_url(content, groups, bossid, bossdump)
     emoji_list = [
