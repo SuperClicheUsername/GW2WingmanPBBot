@@ -665,6 +665,11 @@ async def patchtimerecord(content):
             (bossid, "time"),
         )
 
+    if "isDebug" in content.keys():
+        rows = [1070109613355192370]
+        logger.debug("Debug post")
+        logger.debug(content)
+
     if not rows:
         logger.debug("Nobody wanted this ping")
         return
@@ -747,6 +752,11 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
     if not rows:
         logger.debug("Nobody wanted this ping")
         return
+
+    if "isDebug" in content.keys():
+        rows = [1070109613355192370]
+        logger.debug("Debug post")
+        logger.debug(content)
 
     bossname = bossname_from_id(content, bossid)
     era = determine_era(content, patchidlist)
