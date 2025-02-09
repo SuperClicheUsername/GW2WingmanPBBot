@@ -760,6 +760,10 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
     dpsstring = f"{str(dps)} (+{dpsdiff})"
     acctname = content["account"]
 
+    if acctname == "Conjured Sword" or profession is None:
+        logger.debug("Skipping ping for Conjured Sword/Unknown profession")
+        return
+
     groups = ", ".join(content["group"])
     loglink = content["link"]
     titletext = {"dps": "DPS", "supportdps": "Support DPS"}
