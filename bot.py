@@ -514,6 +514,7 @@ async def channeltrackboss(
     content_type: Literal[
         "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
     ],
+    include_lowmans: Literal[True, False],
 ):
     if content_type == "golem" and ping_type != "dps":
         await interaction.response.send_message(
@@ -523,9 +524,9 @@ async def channeltrackboss(
 
     await interaction.response.defer(thinking=True)
 
-    sql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
+    sql = """INSERT INTO bossserverchannels VALUES(?,?,?,?)"""
     for boss_id in boss_content_lists[content_type]:
-        execute_sql(sql, (interaction.channel_id, boss_id, ping_type))
+        execute_sql(sql, (interaction.channel_id, boss_id, ping_type, include_lowmans))
 
     await interaction.followup.send(
         "Added bosses to track list. Will post in this channel when the next patch record is posted"
@@ -646,10 +647,21 @@ def get_icon_url(content, groups, bossid, bossdump):
 async def patchtimerecord(content):
     await bot.wait_until_ready()
     bossid = content["bossID"]
-    rows = fetch_sql(
-        "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
-        (bossid, "time"),
-    )
+    isLowman = False
+    if "isLowman" in content.keys():
+        isLowman = bool(content["isLowman"])
+        prevPlayerCount = content["previousPlayerAmount"]
+
+    if isLowman:
+        rows = fetch_sql(
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=? AND isLowman=true",
+            (bossid, "time"),
+        )
+    else:
+        rows = fetch_sql(
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+            (bossid, "time"),
+        )
 
     if not rows:
         logger.debug("Nobody wanted this ping")
@@ -668,10 +680,6 @@ async def patchtimerecord(content):
         "%M:%S.%f"
     )[:-3]
     loglink = content["link"]
-    isLowman = False
-    if "isLowman" in content.keys():
-        isLowman = bool(content["isLowman"])
-        prevPlayerCount = content["previousPlayerAmount"]
 
     iconurl = get_icon_url(content, groups, bossid, bossdump)
     emoji_list = [
@@ -792,5 +800,5 @@ with open("data/discord_token.txt") as f:
     token = f.readline()
 
 
-def run_discord_bot():
-    bot.run(token)
+def run_discn():
+    n(token)
