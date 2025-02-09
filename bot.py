@@ -655,7 +655,7 @@ async def patchtimerecord(content):
 
     if isLowman:
         rows = fetch_sql(
-            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=? AND isLowman=true",
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=? AND lowman=true",
             (bossid, "time"),
         )
     else:
