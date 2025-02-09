@@ -514,9 +514,9 @@ async def channeltrackboss(
     content_type: Literal[
         "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
     ],
-    include_lowmans: Literal["True", "False"],
+    only_lowmans: Literal["True", "False"],
 ):
-    include_lowmans = bool(include_lowmans)
+    only_lowmans = bool(only_lowmans)
     if content_type == "golem" and ping_type != "dps":
         await interaction.response.send_message(
             "Only DPS ping type is supported for golems. Try again."
@@ -527,7 +527,7 @@ async def channeltrackboss(
 
     sql = """INSERT INTO bossserverchannels VALUES(?,?,?,?)"""
     for boss_id in boss_content_lists[content_type]:
-        execute_sql(sql, (interaction.channel_id, boss_id, ping_type, include_lowmans))
+        execute_sql(sql, (interaction.channel_id, boss_id, ping_type, only_lowmans))
 
     await interaction.followup.send(
         "Added bosses to track list. Will post in this channel when the next patch record is posted"
@@ -547,12 +547,13 @@ async def channeluntrackboss(
     content_type: Literal[
         "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
     ],
+    only_lowmans: Literal["true", "false"],
 ):
     await interaction.response.defer(thinking=True)
 
-    sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=?"""
+    sql = """DELETE FROM bossserverchannels WHERE id=? AND boss_id=? AND type=? AND lowman=?"""
     for boss_id in boss_content_lists[content_type]:
-        execute_sql(sql, (interaction.channel_id, boss_id, ping_type))
+        execute_sql(sql, (interaction.channel_id, boss_id, ping_type, only_lowmans))
 
     await interaction.followup.send("Removed bosses from track list.")
     return
@@ -660,7 +661,7 @@ async def patchtimerecord(content):
         )
     else:
         rows = fetch_sql(
-            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=?",
+            "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=? AND lowman=false",
             (bossid, "time"),
         )
 
