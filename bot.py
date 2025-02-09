@@ -514,8 +514,9 @@ async def channeltrackboss(
     content_type: Literal[
         "fractals", "raids", "raids cm", "strikes", "strikes cm", "golem", "all"
     ],
-    include_lowmans: Literal[True, False],
+    include_lowmans: Literal["True", "False"],
 ):
+    include_lowmans = bool(include_lowmans)
     if content_type == "golem" and ping_type != "dps":
         await interaction.response.send_message(
             "Only DPS ping type is supported for golems. Try again."
