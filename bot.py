@@ -800,5 +800,5 @@ with open("data/discord_token.txt") as f:
     token = f.readline()
 
 
-def run_discn():
-    n(token)
+def run_discord_bot():
+    bot.run(token)
