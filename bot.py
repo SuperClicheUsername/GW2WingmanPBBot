@@ -624,7 +624,7 @@ def get_icon_url(content, groups, bossid, bossdump):
 
     # If in a group and group has icon use that instead
     if groups:
-        groupicon = urlquote(content["groupIcons"][0])
+        groupicon = urlquote(content["groupIcons"][0], safe=":/")
         if (
             groupicon
             != "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
