@@ -654,7 +654,7 @@ async def patchtimerecord(content):
         )
 
     if "isDebug" in content.keys():
-        rows = [1070109613355192370]
+        rows = [(1070109613355192370,)]
         logger.debug("Debug post")
         logger.debug(content)
 
@@ -742,7 +742,7 @@ async def patchdpsrecord(content, leaderboardtype="dps"):
         return
 
     if "isDebug" in content.keys():
-        rows = [1070109613355192370]
+        rows = [(1070109613355192370,)]
         logger.debug("Debug post")
         logger.debug(content)
 
