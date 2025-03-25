@@ -14,6 +14,7 @@ from datetime import datetime as dt
 from datetime import timezone
 from os.path import exists
 from typing import Literal, Optional
+from urllib.parse import quote as urlquote
 
 import discord
 from discord import app_commands
@@ -623,7 +624,7 @@ def get_icon_url(content, groups, bossid, bossdump):
 
     # If in a group and group has icon use that instead
     if groups:
-        groupicon = content["groupIcons"][0]
+        groupicon = urlquote(content["groupIcons"][0])
         if (
             groupicon
             != "https://gw2wingman.nevermindcreations.de/static/groupIcons/defGroup.png"
