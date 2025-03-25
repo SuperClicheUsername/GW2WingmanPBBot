@@ -289,7 +289,7 @@ async def check(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Add tracking for when game adds new boss")
-@app_commands.describe(new_boss_id="Positive new boss id")
+@app_commands.describe(new_boss_id="New boss id, add both positive and negative if CM")
 @commands.is_owner()
 async def addnewbossid(
     interaction: discord.Interaction,
@@ -300,25 +300,20 @@ async def addnewbossid(
     bossid = example_boss_ids[boss_type]
 
     rows = fetch_sql(
-        f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+        """SELECT DISTINCT id, type, lowman FROM bossserverchannels WHERE boss_id = ?""",
+        (bossid,),
     )
-    channel_ids = {
-        "dps": [item[0] for item in rows if item[1] == "dps"],
-        "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
-        "time": [item[0] for item in rows if item[1] == "time"],
-    }
 
-    insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?)"""
-    for channel_type, ids in channel_ids.items():
-        for channel_id in ids:
-            execute_sql(insertsql, (channel_id, new_boss_id, channel_type))
+    insertsql = """INSERT INTO bossserverchannels VALUES(?,?,?,?)"""
+    for channel_id, channel_type, lowman in rows:
+        execute_sql(insertsql, (channel_id, new_boss_id, channel_type, lowman))
 
     logger.info(f"Added new boss id: {new_boss_id} to bosstype: {str(boss_type)}")
     await interaction.response.send_message(f"Success! Added boss {len(rows)} times")
 
 
-@bot.tree.command(description="Add tracking for when game adds new boss")
-@app_commands.describe(new_boss_id="Positive new boss id")
+@bot.tree.command(description="Remove tracking for when I fuck up")
+@app_commands.describe(new_boss_id="New boss id, add both positive and negative if CM")
 @commands.is_owner()
 async def removenewbossid(
     interaction: discord.Interaction,
@@ -329,20 +324,13 @@ async def removenewbossid(
     bossid = example_boss_ids[boss_type]
 
     rows = fetch_sql(
-        f"""SELECT DISTINCT id, type FROM bossserverchannels WHERE boss_id = '{bossid}'"""
+        """SELECT DISTINCT id, type, lowman FROM bossserverchannels WHERE boss_id = ?""",
+        (bossid,),
     )
-    channel_ids = {
-        "dps": [item[0] for item in rows if item[1] == "dps"],
-        "supportdps": [item[0] for item in rows if item[1] == "supportdps"],
-        "time": [item[0] for item in rows if item[1] == "time"],
-    }
 
-    deletesql = (
-        """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ?"""
-    )
-    for channel_type, ids in channel_ids.items():
-        for channel_id in ids:
-            execute_sql(deletesql, (channel_id, new_boss_id, channel_type))
+    deletesql = """DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ? AND lowman = ?"""
+    for channel_id, channel_type, lowman in rows:
+        execute_sql(deletesql, (channel_id, new_boss_id, channel_type, lowman))
 
     logger.info(f"Removed boss id: {new_boss_id} to bosstype: {boss_type}")
     await interaction.response.send_message(f"Success! Removed boss {len(rows)} times")
