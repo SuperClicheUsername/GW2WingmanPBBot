@@ -1,6 +1,3 @@
-import asyncio
-import json
-
 # from bot import personaldps, personaltime
 from threading import Thread
 
@@ -26,23 +23,23 @@ if __name__ == "__main__":
 
 
 @app.route("/")
-async def hello():
+async def hello() -> str:
     return "Hello World"
 
 
 @app.route("/patchrecord/", methods=["POST"])
-async def patchrecord():
+async def patchrecord() -> str:
     content_type = request.headers.get("Content-Type")
     if content_type != "application/json":
         return "Content-Type not supported!"
-    data = await request.get_json()
+    data: dict[str, str | int | bool | list[str]] = await request.get_json()
 
     logger.debug(data)
 
     if data["type"] == "time":
         try:
             await patchtimerecord(data)
-        except Exception as err:
+        except Exception:
             logger.error(data)
             logger.exception("Patch time record did not ping")
             return "Fail"
@@ -50,7 +47,7 @@ async def patchrecord():
     elif data["type"] == "dps":
         try:
             await patchdpsrecord(data, leaderboardtype="dps")
-        except Exception as err:
+        except Exception:
             logger.error(data)
             logger.exception("Patch DPS record did not ping")
             return "Fail"
@@ -58,7 +55,7 @@ async def patchrecord():
     elif data["type"] == "supportdps":
         try:
             await patchdpsrecord(data, leaderboardtype="supportdps")
-        except Exception as err:
+        except Exception:
             logger.error(data)
             logger.exception("Patch Support DPS record did not ping")
             return "Fail"
@@ -67,22 +64,22 @@ async def patchrecord():
 
 
 @app.route("/reportlog/", methods=["POST"])
-async def reportlog():
+async def reportlog() -> str:
     content_type = request.headers.get("Content-Type")
     if content_type != "application/json":
         return "Content-Type not supported!"
-    data = await request.get_json()
+    data: dict[str, str] = await request.get_json()
     await pingreportedlog(data)
 
     return "Success"
 
 
 @app.route("/internalmessage/", methods=["POST"])
-async def internalmessaging():
+async def internalmessaging() -> str:
     content_type = request.headers.get("Content-Type")
     if content_type != "application/json":
         return "Content-Type not supported!"
 
-    data = await request.get_json()
+    data: dict[str, str] = await request.get_json()
     await internalmessage(data)
     return "Success"
