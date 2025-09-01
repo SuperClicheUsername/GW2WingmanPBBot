@@ -1,0 +1,12 @@
+[project]
+name = "gw2wingmanpbbot"
+version = "1.0.0"
+description = "Discord bot with features from GW2 Wingman https://gw2wingman.nevermindcreations.de/"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "discord-py>=2.4.0",
+    "hypercorn>=0.17.3",
+    "quart>=0.19.9",
+    "requests>=2.32.3",
+]

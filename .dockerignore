@@ -1,0 +1,20 @@
+# Jupyter Notebooks
+/.ipynb_checkpoints
+*.ipynb
+
+# Data files because we want to put them in a volume
+data/
+
+# Github Actions
+.github
+
+# Visual Studio
+.vscode
+
+# Temp files
+*.tmp
+
+# Cache files
+/__pycache__
+
+.venv
