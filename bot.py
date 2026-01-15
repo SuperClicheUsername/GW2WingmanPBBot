@@ -201,9 +201,7 @@ async def track(
         )
         return
 
-    workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user][
-        "tracked_boss_ids"
-    ].union(
+    workingdata["user"][user]["tracked_boss_ids"] = workingdata["user"][user]["tracked_boss_ids"].union(
         boss_content_lists[content_type],
     )
 
@@ -219,10 +217,7 @@ async def track(
 @bot.tree.command(description="Manually check for new PBs")
 async def check(interaction: discord.Interaction) -> None:
     userid = interaction.user.id
-    if (
-        workingdata["user"][userid]["apikey"] is not None
-        and workingdata["user"][userid]["tracked_boss_ids"] != set()
-    ):
+    if workingdata["user"][userid]["apikey"] is not None and workingdata["user"][userid]["tracked_boss_ids"] != set():
         APIKey = workingdata["user"][userid]["apikey"]
         tracked_boss_ids = workingdata["user"][userid]["tracked_boss_ids"]
 
@@ -342,9 +337,7 @@ async def removenewbossid(
         (bossid,),
     )
 
-    deletesql = (
-        "DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ? AND lowman = ?"
-    )
+    deletesql = "DELETE FROM bossserverchannels WHERE id = ? AND boss_id = ? AND type = ? AND lowman = ?"
     for channel_id, channel_type, lowman in rows:
         execute_sql(deletesql, (channel_id, new_boss_id, channel_type, lowman))
 
@@ -389,12 +382,12 @@ def construct_bossnamelinks_and_stats(
     leaderboard: Literal["time", "dps", "support"],
     spec: str,
 ) -> tuple[str, str]:
-    bossname = (
-        f"{bossidtoname[boss_id[1:]]} CM" if boss_id.startswith("-") else bossidtoname[boss_id]
-    )
+    bossname = f"{bossidtoname[boss_id[1:]]} CM" if boss_id.startswith("-") else bossidtoname[boss_id]
 
     if leaderboard == "time":
-        link = f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topBossTimes'][patch_id][boss_id]['link']}"
+        link = (
+            f"https://gw2wingman.nevermindcreations.de/log/{playerstatdump['topBossTimes'][patch_id][boss_id]['link']}"
+        )
         stat = dt.fromtimestamp(
             playerstatdump["topBossTimes"][patch_id][boss_id]["durationMS"] / 1000,
         ).strftime("%M:%S.%f")[:-3]
@@ -413,9 +406,7 @@ def construct_bossnamelinks_and_stats(
 @bot.tree.command(description="Flex on your friends by sharing your best logs.")
 @app_commands.describe(
     leaderboard="Which type of leaderboard you would like to show.",
-    patch_id=(
-        "Optional - Patch ID, by default will show the latest. Patch IDs are generally 'YY-MM'"
-    ),
+    patch_id=("Optional - Patch ID, by default will show the latest. Patch IDs are generally 'YY-MM'"),
     content=(
         "Optional - The bosses you would like to show organized by content type. "
         "Defaults to all. Includes normal and CMs."
@@ -529,10 +520,7 @@ async def about(interaction: discord.Interaction) -> None:
 
 
 @bot.tree.command(
-    description=(
-        "In the channel where the command is called, "
-        "post a message when there is a new patch record"
-    ),
+    description=("In the channel where the command is called, post a message when there is a new patch record"),
 )
 @app_commands.describe(content_type="The content you want to track")
 @app_commands.checks.has_permissions(administrator=True)
@@ -566,10 +554,7 @@ async def channeltrackboss(
         execute_sql(sql, (interaction.channel_id, boss_id, ping_type, only_lowmans))
 
     await interaction.followup.send(
-        (
-            "Added bosses to track list. "
-            "Will post in this channel when the next patch record is posted"
-        ),
+        ("Added bosses to track list. Will post in this channel when the next patch record is posted"),
     )
     return
 
@@ -638,10 +623,15 @@ async def internalmessage(content: dict) -> None:
     await bot.wait_until_ready()
     message = content["message"]
     internalmessagechannel = 1208602365972717628
+    videochannelid = 1459279812249260257
 
     channel = bot.get_channel(internalmessagechannel)
+    video_channel = bot.get_channel(videochannelid)
     try:
-        bot.loop.create_task(channel.send(content=message))  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        if "video" in message:
+            bot.loop.create_task(video_channel.send(content=message))  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        else:
+            bot.loop.create_task(channel.send(content=message))  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
     except Exception:
         logger.exception("Internal message could not be sent")
 
@@ -707,10 +697,7 @@ async def patchtimerecord(content: dict) -> None:
         )
     else:
         rows = fetch_sql(
-            (
-                "SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? "
-                "AND type=? AND lowman=false"
-            ),
+            ("SELECT DISTINCT id FROM bossserverchannels WHERE boss_id=? AND type=? AND lowman=false"),
             (bossid, "time"),
         )
 
@@ -739,9 +726,7 @@ async def patchtimerecord(content: dict) -> None:
 
     iconurl = get_icon_url(content, groups, bossid, bossdump)
     emoji_list = [str(get(bot.emojis, name=spec)) for spec in content["players_professions"]]
-    playerscontent = "\n".join(
-        f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts, strict=False)
-    )
+    playerscontent = "\n".join(f"{m} {n}/{o}" for m, n, o in zip(emoji_list, players, accts, strict=False))
 
     fields = [
         ("Time", time, True),
